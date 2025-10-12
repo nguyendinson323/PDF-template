@@ -1,0 +1,77 @@
+{
+  "$schema": "./schema/header-footer.schema.json",
+  "version": "1.0.0",
+  "page": {
+    "width": 612,
+    "height": 792,
+    "unit": "point"
+  },
+  "fonts": {
+    "regular": "fonts/Inter-Regular.ttf",
+    "bold": "fonts/Inter-Bold.ttf"
+  },
+  "header": {
+    "enabled": true,
+    "height": 45.6,
+    "position": {
+      "x": 156,
+      "y": 753.6,
+      "width": 336,
+      "height": 45.6
+    },
+    "content": {
+      "type": "composite",
+      "elements": [
+        {
+          "text": "{{document.code}}-{{document.semanticVersion}}-{{context.currentPhase}}-{{context.correlativocurrentPhase}}",
+          "separator": " | "
+        },
+        {
+          "text": "{{document.title}}",
+          "separator": " | "
+        },
+        {
+          "text": "{{document.semanticVersion}}",
+          "separator": " | "
+        },
+        {
+          "text": "{{context.stagePhase}}",
+          "separator": "\n"
+        },
+        {
+          "text": "Fecha: {{document.publicationDate}}",
+          "separator": " | "
+        },
+        {
+          "text": "Clasificación: {{context.classificationName}}",
+          "separator": " | "
+        },
+        {
+          "text": "Página {{pageNumber}} de {{totalPages}}",
+          "separator": " | "
+        },
+        {
+          "text": "Hash: …{{document.security.hashSha256Short}}",
+          "separator": ""
+        }
+      ],
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "center",
+        "wrap": true,
+        "color": "#000000"
+      }
+    },
+    "border": {
+      "top": false,
+      "bottom": true,
+      "width": 1,
+      "color": "#000000"
+    }
+  },
+  "footer": {
+    "enabled": false,
+    "height": 0
+  }
+}

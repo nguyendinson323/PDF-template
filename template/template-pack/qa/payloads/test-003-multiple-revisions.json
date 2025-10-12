@@ -1,0 +1,145 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-QA-015",
+    "title": "Quality Assurance Standard Operating Procedures",
+    "semanticVersion": "v5.2.8",
+    "publicationDate": "2024-10-10",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4",
+      "tsaTime": "2024-10-10T09:15:00Z",
+      "tsaSerial": "TSA-2024-145"
+    }
+  },
+  "context": {
+    "areaCode": "QA",
+    "areaName": "Quality Assurance",
+    "classificationName": "Internal Use Only",
+    "criticalityCode": "H",
+    "criticalityName": "High",
+    "typeCode": "SOP",
+    "typeName": "Standard Operating Procedure",
+    "currentPhase": "Published",
+    "statuscurrentPhase": "Active",
+    "correlativocurrentPhase": "015",
+    "destinationPhase": "Production",
+    "stagePhase": "Published"
+  },
+  "participants": {
+    "creator": {
+      "name": "Sarah Johnson",
+      "jobTitle": "QA Lead",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Michael Chen",
+        "jobTitle": "Senior QA Engineer",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "David Miller",
+      "jobTitle": "QAC Director",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Jennifer White",
+        "jobTitle": "VP of Quality",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Robert Davis",
+      "jobTitle": "Document Controller",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-QA-015-01",
+      "date": "2024-10-01",
+      "status": "Completed"
+    },
+    "review": [
+      {
+        "id": "CL-QA-015-02",
+        "date": "2024-10-03",
+        "status": "Completed"
+      }
+    ],
+    "qac": {
+      "id": "CL-QA-015-03",
+      "date": "2024-10-05",
+      "status": "Completed"
+    },
+    "approval": [
+      {
+        "id": "CL-QA-015-04",
+        "date": "2024-10-08",
+        "status": "Completed"
+      }
+    ],
+    "publish": {
+      "id": "CL-QA-015-05",
+      "date": "2024-10-10",
+      "status": "Completed"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v5.2.8",
+      "date": "2024-10-10",
+      "revisionDescription": "Minor bug fix in test case execution procedures",
+      "responsibleName": "Robert Davis"
+    },
+    {
+      "version": "v5.2.7",
+      "date": "2024-09-20",
+      "revisionDescription": "Updated automated testing framework guidelines",
+      "responsibleName": "Robert Davis"
+    },
+    {
+      "version": "v5.2.6",
+      "date": "2024-08-15",
+      "revisionDescription": "Added new regression testing protocols",
+      "responsibleName": "Robert Davis"
+    },
+    {
+      "version": "v5.2.5",
+      "date": "2024-07-10",
+      "revisionDescription": "Enhanced performance testing criteria",
+      "responsibleName": "Lisa Martinez"
+    },
+    {
+      "version": "v5.2.4",
+      "date": "2024-06-05",
+      "revisionDescription": "Updated security testing checklist",
+      "responsibleName": "Lisa Martinez"
+    },
+    {
+      "version": "v5.2.3",
+      "date": "2024-05-01",
+      "revisionDescription": "Revised integration testing workflows",
+      "responsibleName": "Tom Anderson"
+    },
+    {
+      "version": "v5.2.2",
+      "date": "2024-03-15",
+      "revisionDescription": "Added mobile testing best practices",
+      "responsibleName": "Tom Anderson"
+    },
+    {
+      "version": "v5.2.1",
+      "date": "2024-02-01",
+      "revisionDescription": "Minor clarifications in test documentation requirements",
+      "responsibleName": "Tom Anderson"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-MIN-001",
+    "title": "Minimal Test Document",
+    "semanticVersion": "v0.1.0",
+    "publicationDate": "2024-10-12",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "",
+      "tsaTime": "",
+      "tsaSerial": ""
+    }
+  },
+  "context": {
+    "areaCode": "TST",
+    "areaName": "Test",
+    "classificationName": "Public",
+    "criticalityCode": "L",
+    "criticalityName": "Low",
+    "typeCode": "DOC",
+    "typeName": "Document",
+    "currentPhase": "Draft",
+    "statuscurrentPhase": "In Progress",
+    "correlativocurrentPhase": "001",
+    "destinationPhase": "Review",
+    "stagePhase": "Draft"
+  },
+  "participants": {
+    "creator": {
+      "name": "Test User",
+      "jobTitle": "Tester",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Reviewer One",
+        "jobTitle": "Review Lead",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "QAC User",
+      "jobTitle": "QAC Lead",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Approver One",
+        "jobTitle": "Manager",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Doc Control User",
+      "jobTitle": "Doc Control",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-001",
+      "date": "2024-10-12",
+      "status": "Pending"
+    },
+    "review": [
+      {
+        "id": "",
+        "date": "",
+        "status": "Not Started"
+      }
+    ],
+    "qac": {
+      "id": "",
+      "date": "",
+      "status": "Not Started"
+    },
+    "approval": [
+      {
+        "id": "",
+        "date": "",
+        "status": "Not Started"
+      }
+    ],
+    "publish": {
+      "id": "",
+      "date": "",
+      "status": "Not Started"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v0.1.0",
+      "date": "2024-10-12",
+      "revisionDescription": "Initial draft",
+      "responsibleName": "Test User"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PÄS-ÜTF-ß42",
+    "title": "Spëçîål Çhåråçtërs & Ûñïçødé Tëst Dòcümènt — Prüëbä dë Âçéñtôs",
+    "semanticVersion": "v3.14.15",
+    "publicationDate": "2024-10-12",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "café1234dead5678beef9012fade3456babe7890face1234deaf5678beef9012",
+      "tsaTime": "2024-10-12T12:00:00Z",
+      "tsaSerial": "TSA-2024-ÜTF8"
+    }
+  },
+  "context": {
+    "areaCode": "I18N",
+    "areaName": "Internationalización y Localización — 国际化",
+    "classificationName": "Público • Öffentlich • Público",
+    "criticalityCode": "M",
+    "criticalityName": "Média • Mittel • Medium",
+    "typeCode": "UTF",
+    "typeName": "Ûñïçødé Tëst",
+    "currentPhase": "Publicado",
+    "statuscurrentPhase": "Åçtîvô",
+    "correlativocurrentPhase": "042",
+    "destinationPhase": "Prödüçtïøñ",
+    "stagePhase": "Püblîshëd"
+  },
+  "participants": {
+    "creator": {
+      "name": "François Müller-São Paulo",
+      "jobTitle": "Spëçîålîst în I18Ñ",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "José María García Fernández",
+        "jobTitle": "Rëvîsør Sêñîør",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Björk Guðmundsdóttir",
+      "jobTitle": "QÂÇ Mañágër",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Søren Ærø-Østergård",
+        "jobTitle": "Dîrëçtør dë Çålîdåd",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Nuñez-O'Brien & Smîth™",
+      "jobTitle": "Çøñtröl dë Døçümëñtøs",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "ÇL-ÜTF-001-«çréâtør»",
+      "date": "2024-10-01",
+      "status": "Çömplëtådö"
+    },
+    "review": [
+      {
+        "id": "ÇL-ÜTF-002-【rëvîëw】",
+        "date": "2024-10-05",
+        "status": "Âprøbådö"
+      }
+    ],
+    "qac": {
+      "id": "ÇL-ÜTF-003-‹qåç›",
+      "date": "2024-10-08",
+      "status": "Vërîfîçådö"
+    },
+    "approval": [
+      {
+        "id": "ÇL-ÜTF-004-»åpprövål«",
+        "date": "2024-10-10",
+        "status": "Âütørizådö"
+      }
+    ],
+    "publish": {
+      "id": "ÇL-ÜTF-005-§püblîsh¶",
+      "date": "2024-10-12",
+      "status": "Püblîçådö"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v3.14.15",
+      "date": "2024-10-12",
+      "revisionDescription": "Tëst compléto dë çårâçtërës ëspëçîålës: áéíóú ÁÉÍÓÚ àèìòù ÀÈÌÒÙ âêîôû ÂÊÎÔÛ ãñõ ÃÑÕ äëïöü ÄËÏÖÜ ç Ç ß Ø œ Œ æ Æ © ® ™ € £ ¥ • – — … « » ‹ › ' ' ‚ \" \" „ † ‡",
+      "responsibleName": "Nuñez-O'Brien & Smîth™"
+    },
+    {
+      "version": "v3.14.14",
+      "date": "2024-09-30",
+      "revisionDescription": "Sêgündå rëvîsïøñ çøñ ñüëvös símböløs: ¡¿§¶†‡°·¸¨¯´¦",
+      "responsibleName": "François Müller"
+    },
+    {
+      "version": "v3.14.13",
+      "date": "2024-09-15",
+      "revisionDescription": "Prîmërå vërsîöñ çöñ sópörtë mültîlîñgüë êñ ëspâñöl, îñglës, frâñçës, älëmãñ & pörtügüës",
+      "responsibleName": "José María García"
+    }
+  ]
+}

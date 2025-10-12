@@ -1,0 +1,397 @@
+{
+    "page": {
+        "width": 612,
+        "height": 792,
+        "top_margin": 141.84,
+        "bottom_margin": 99.36,
+        "left_margin": 70.56,
+        "right_margin": 70.56,
+        "text_margin": 7.2
+    },
+    "unit": "point",
+    "FIRMAS Y APROBACIONES table": {
+        "margin_top": 14.4,
+        "width": "100%",
+        "title": {
+            "text": "FIRMAS Y APROBACIONES",
+            "text_size": 11,
+            "text_align": "center",
+            "height": 28.08
+        },
+        "th": {
+            "styles": {
+                "height": 25.92,
+                "text_size": 9,
+                "text_align": "center"
+            },
+            "fields": [
+                {
+                    "text": "Acción",
+                    "width": 51.12
+                },
+                {
+                    "text": "Nombre",
+                    "width": 87.12
+                },
+                {
+                    "text": "Cargo",
+                    "width": 48.24
+                },
+                {
+                    "text": "ID Check List",
+                    "width": 100.8
+                },
+                {
+                    "text": "Fecha",
+                    "width": 89.28
+                },
+                {
+                    "text": "Estado",
+                    "width": 92.88
+                }
+            ]
+        },
+        "tr": {
+            "styles": {
+                "height": 16.56,
+                "text_align": "left",
+                "text_size": 5
+            },
+            "rows": [
+                [
+                    "Elaboró",
+                    "{nameCreator}",
+                    "{jobpositionCreator}",
+                    "{idcreatorChecklistsubmit}",
+                    "{datecreatorChecklistsubmit}",
+                    "{statuscreatorChecklistsubmit}"
+                ],
+                [
+                    "Revisó",
+                    "{nameReviewer}",
+                    "{jobpositionReviewer}",
+                    "{idreviewChecklistsubmit}",
+                    "{datereviewChecklistsubmit}",
+                    "{statusreviewChecklistsubmit}"
+                ],
+                [
+                    "QAC",
+                    "{nameQac}",
+                    "{jobpositionQac}",
+                    "{idqacChecklistsubmit}",
+                    "{dateqacChecklistsubmit}",
+                    "{statusqacChecklistsubmit}"
+                ],
+                [
+                    "Aprobó",
+                    "{nameApproval}",
+                    "{jobpositionApproval}",
+                    "{idapprovalChecklistsubmit}",
+                    "{dateapprovalChecklistsubmit}",
+                    "{statusapprovalChecklistsubmit}"
+                ],
+                [
+                    "Publicó",
+                    "{nameDcontrol}",
+                    "{jobpositionDcontrol}",
+                    "{iddcontrolChecklistsubmit}",
+                    "{datedcontrolChecklistsubmit}",
+                    "{statusdcontrolChecklistsubmit}"
+                ]
+            ]
+        }
+    },
+    "signning table container": {
+        "margin_top": 21.6,
+        "preparer table": {
+            "top": 0,
+            "left": 0,
+            "width": 128.16,
+            "row-1": {
+                "height": 13.68,
+                "text": "Elaborado por:",
+                "text_align": "left",
+                "text_size": 9,
+                "bottom_outline": "none"
+            },
+            "row-2": {
+                "height": 5.04,
+                "text": "{ nameCreator }",
+                "text_align": "right",
+                "text_size": 9,
+                "top_outline": "none"
+            },
+            "row-3": {
+                "height": 9.36,
+                "columns": {
+                    "col-1": {
+                        "width": 42.48,
+                        "text": "Fecha",
+                        "text_align": "left",
+                        "text_size": 9
+                    },
+                    "col-2": {
+                        "width": 85.68,
+                        "text": "{ datecreatorChecklistsubmit }",
+                        "text_align": "center",
+                        "text_size": 5
+                    }
+                }
+            },
+            "row-4": {
+                "height": 5.76,
+                "text": "Firma:",
+                "text_align": "left",
+                "text_size": 9
+            },
+            "row-5": {
+                "height": 41.04,
+                "text": "{ signCreator }",
+                "text_align": "left",
+                "text_size": 9
+            }
+        },
+        "reviewer table": {
+            "top": 0,
+            "left": 163.44,
+            "width": 128.16,
+            "row-1": {
+                "height": 13.68,
+                "text": "Revisado por:",
+                "text_align": "left",
+                "text_size": 9,
+                "bottom_outline": "none"
+            },
+            "row-2": {
+                "height": 5.04,
+                "text": "{ nameReviewer }",
+                "text_align": "right",
+                "text_size": 9,
+                "top_outline": "none"
+            },
+            "row-3": {
+                "height": 9.36,
+                "columns": {
+                    "col-1": {
+                        "width": 42.48,
+                        "text": "Fecha",
+                        "text_align": "left",
+                        "text_size": 9
+                    },
+                    "col-2": {
+                        "width": 85.68,
+                        "text": "{ datereviewChecklistsubmit  }",
+                        "text_align": "center",
+                        "text_size": 5
+                    }
+                }
+            },
+            "row-4": {
+                "height": 5.76,
+                "text": "Firma:",
+                "text_align": "left",
+                "text_size": 9
+            },
+            "row-5": {
+                "height": 41.04,
+                "text": "{ signReviewer }",
+                "text_align": "left",
+                "text_size": 9
+            }
+        },
+        "QAC table": {
+            "top": 0,
+            "left": 327,
+            "width": 128.16,
+            "row-1": {
+                "height": 13.68,
+                "text": "QAC:",
+                "text_align": "left",
+                "text_size": 9,
+                "bottom_outline": "none"
+            },
+            "row-2": {
+                "height": 5.04,
+                "text": "{ nameQac }",
+                "text_align": "right",
+                "text_size": 9,
+                "top_outline": "none"
+            },
+            "row-3": {
+                "height": 9.36,
+                "columns": {
+                    "col-1": {
+                        "width": 42.48,
+                        "text": "Fecha",
+                        "text_align": "left",
+                        "text_size": 9
+                    },
+                    "col-2": {
+                        "width": 85.68,
+                        "text": "{ dateqacChecklistsubmit }",
+                        "text_align": "center",
+                        "text_size": 5
+                    }
+                }
+            },
+            "row-4": {
+                "height": 5.76,
+                "text": "Firma:",
+                "text_align": "left",
+                "text_size": 9
+            },
+            "row-5": {
+                "height": 41.04,
+                "text": "{ signQac }",
+                "text_align": "left",
+                "text_size": 9
+            }
+        },
+        "approver table": {
+            "top": 93.6,
+            "left": 84.96,
+            "width": 128.16,
+            "row-1": {
+                "height": 13.68,
+                "text": "Aprobado por:",
+                "text_align": "left",
+                "text_size": 9,
+                "bottom_outline": "none"
+            },
+            "row-2": {
+                "height": 5.04,
+                "text": "{ nameApproval }",
+                "text_align": "right",
+                "text_size": 9,
+                "top_outline": "none"
+            },
+            "row-3": {
+                "height": 9.36,
+                "columns": {
+                    "col-1": {
+                        "width": 42.48,
+                        "text": "Fecha",
+                        "text_align": "left",
+                        "text_size": 9
+                    },
+                    "col-2": {
+                        "width": 85.68,
+                        "text": "{ dateapprovalChecklistsubmit }",
+                        "text_align": "center",
+                        "text_size": 5
+                    }
+                }
+            },
+            "row-4": {
+                "height": 5.76,
+                "text": "Firma:",
+                "text_align": "left",
+                "text_size": 9
+            },
+            "row-5": {
+                "height": 41.04,
+                "text": "{ signApproval }",
+                "text_align": "left",
+                "text_size": 9
+            }
+        },
+        "publisher table": {
+            "top": 93.6,
+            "left": 248.4,
+            "width": 128.16,
+            "row-1": {
+                "height": 13.68,
+                "text": "Publicado por:",
+                "text_align": "left",
+                "text_size": 9,
+                "bottom_outline": "none"
+            },
+            "row-2": {
+                "height": 5.04,
+                "text": "{ nameDcontrol }",
+                "text_align": "right",
+                "text_size": 9,
+                "top_outline": "none"
+            },
+            "row-3": {
+                "height": 9.36,
+                "columns": {
+                    "col-1": {
+                        "width": 42.48,
+                        "text": "Fecha",
+                        "text_align": "left",
+                        "text_size": 9
+                    },
+                    "col-2": {
+                        "width": 85.68,
+                        "text": "{ datedcontrolChecklistsubmit }",
+                        "text_align": "center",
+                        "text_size": 5
+                    }
+                }
+            },
+            "row-4": {
+                "height": 5.76,
+                "text": "Firma:",
+                "text_align": "left",
+                "text_size": 9
+            },
+            "row-5": {
+                "height": 41.04,
+                "text": "{ signDcontrol }",
+                "text_align": "left",
+                "text_size": 9
+            }
+        }
+    },
+    "CONTROL DE CAMBIOS table(Dinamic Table)": {
+        "margin_top": 72,
+        "width": "100%",
+        "title": {
+            "text": "CONTROL DE CAMBIOS (Dinamic Table)",
+            "text_size": 11,
+            "text_align": "center",
+            "height": 28.08
+        },
+        "th": {
+            "styles": {
+                "height": 23.04,
+                "text_size": 9,
+                "text_align": "center"
+            },
+            "fields": [
+                {
+                    "text": "Versión",
+                    "width": 76.32
+                },
+                {
+                    "text": "Fecha",
+                    "width": 59.76
+                },
+                {
+                    "text": "Descripción revisión",
+                    "width": 243.36
+                },
+                {
+                    "text": "Responsable",
+                    "width": 90
+                }
+            ]
+        },
+        "tr": {
+            "styles": {
+                "height": 16.56,
+                "text_align": "left",
+                "text_size": 9
+            },
+            "rows": [
+                [
+                    "{ semantictableVersion }",
+                    "{ publicationtableDate }",
+                    "{ descriptiontableVersion }",
+                    "{ namedcontroltableVersion }"
+                ]
+            ]
+        }
+    }
+}

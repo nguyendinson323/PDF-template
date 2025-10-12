@@ -1,0 +1,52 @@
+{
+    "page_point": {
+        "width": 612.0,
+        "height": 792.0,
+        "unit": "point"
+    },
+    "unit": "point",
+    "line": {
+        "x1": 81.6,
+        "y1": 84.0,
+        "x2": 535.2,
+        "y2": 84.0,
+        "color": "blue",
+        "style": "border-line",
+        "unit": "point"
+    },
+    "container": {
+        "x1": 156.0,
+        "y1": 84.0,
+        "x2": 492.0,
+        "y2": 38.4,
+        "align": "center",
+        "text-wrap": "wrap",
+        "border": "none",
+        "text_size": 9,
+        "text": [
+            "{docID}",
+            "-",
+            "{semanticfinalVersion}",
+            "-",
+            "{currentPhase}",
+            "-",
+            "{correlativcurrentPhase}",
+            "|",
+            "{docTitle}",
+            "|",
+            "{semanticVersion}",
+            "|",
+            "{stagePhase}",
+            "Fecha:",
+            "{publicationDate}",
+            "|",
+            "Clasificación:",
+            "{confidentialityName}",
+            "|",
+            "Página {v} de {h}",
+            "|",
+            "Hash: …",
+            "{shortHash}"
+        ]
+    }
+}

@@ -1,0 +1,115 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-TI-042",
+    "title": "Política de Seguridad de la Información Corporativa y Gestión de Activos Tecnológicos",
+    "semanticVersion": "v2.3.1",
+    "publicationDate": "2024-09-15",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "b4e3c9d2f1a5e6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a1b2",
+      "tsaTime": "2024-09-15T14:45:00Z",
+      "tsaSerial": "TSA-2024-089"
+    }
+  },
+  "context": {
+    "areaCode": "TI",
+    "areaName": "Tecnología de la Información",
+    "classificationName": "Público",
+    "criticalityCode": "M",
+    "criticalityName": "Media",
+    "typeCode": "PRO",
+    "typeName": "Procedimiento",
+    "currentPhase": "Publicado",
+    "statuscurrentPhase": "Vigente",
+    "correlativocurrentPhase": "042",
+    "destinationPhase": "Producción",
+    "stagePhase": "Publicado"
+  },
+  "participants": {
+    "creator": {
+      "name": "María José García Fernández",
+      "jobTitle": "Analista de Seguridad TI",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "José Luis Martínez López",
+        "jobTitle": "Analista Senior",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Carlos Alberto Rodríguez",
+      "jobTitle": "Gerente QAC",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Ana María Sánchez Díaz",
+        "jobTitle": "Directora de TI",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Francisco Javier Pérez",
+      "jobTitle": "Control Documentos",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-TI-042-01",
+      "date": "2024-09-01",
+      "status": "Completado"
+    },
+    "review": [
+      {
+        "id": "CL-TI-042-02",
+        "date": "2024-09-05",
+        "status": "Completado"
+      }
+    ],
+    "qac": {
+      "id": "CL-TI-042-03",
+      "date": "2024-09-10",
+      "status": "Completado"
+    },
+    "approval": [
+      {
+        "id": "CL-TI-042-04",
+        "date": "2024-09-12",
+        "status": "Completado"
+      }
+    ],
+    "publish": {
+      "id": "CL-TI-042-05",
+      "date": "2024-09-15",
+      "status": "Completado"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v2.3.1",
+      "date": "2024-09-15",
+      "revisionDescription": "Actualización de procedimientos de autenticación multifactor",
+      "responsibleName": "Francisco Javier Pérez"
+    },
+    {
+      "version": "v2.3.0",
+      "date": "2024-06-20",
+      "revisionDescription": "Incorporación de nuevas políticas de cifrado de datos",
+      "responsibleName": "Francisco Javier Pérez"
+    },
+    {
+      "version": "v2.2.0",
+      "date": "2024-03-10",
+      "revisionDescription": "Revisión general y actualización de normativas internacionales",
+      "responsibleName": "Laura Fernández"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "passfy-template-pack",
+  "version": "1.0.0",
+  "description": "Passfy Document Control - Template Pack for PDF generation",
+  "private": true,
+  "scripts": {
+    "create-cover": "node create-clean-cover.js",
+    "generate-golden": "node generate-golden.js",
+    "validate": "node validate-schemas.js",
+    "test": "npm run validate && npm run generate-golden",
+    "rebuild": "npm run create-cover && npm run test"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "@pdf-lib/fontkit": "^1.1.1"
+  },
+  "devDependencies": {
+    "ajv": "^8.12.0"
+  },
+  "keywords": [
+    "pdf",
+    "template",
+    "document-control"
+  ],
+  "author": "Passfy",
+  "license": "PROPRIETARY"
+}

@@ -1,0 +1,1030 @@
+{
+  "$schema": "./schema/manifest.schema.json",
+  "version": "1.0.0",
+  "page": {
+    "width": 612,
+    "height": 792,
+    "unit": "point"
+  },
+  "fonts": {
+    "regular": "fonts/Inter-Regular.ttf",
+    "bold": "fonts/Inter-Bold.ttf"
+  },
+  "logo": {
+    "source": "{{document.brand.logoUrl}}",
+    "position": {
+      "x": 71.04,
+      "y": 703.2,
+      "width": 96.96,
+      "height": 56.88
+    },
+    "align": "center",
+    "scale": "fit"
+  },
+  "qrCode": {
+    "source": "{{document.qr.baseUrl}}{{document.code}}{{document.semanticVersion}}",
+    "position": {
+      "x": 475.2,
+      "y": 703.2,
+      "width": 65.52,
+      "height": 45.12
+    },
+    "align": "center",
+    "errorCorrection": "M"
+  },
+  "fields": [
+    {
+      "id": "label_docTitle",
+      "type": "text",
+      "source": "Título del documento:",
+      "position": {
+        "x": 168,
+        "y": 748.32,
+        "width": 307.2,
+        "height": 11.76
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "docTitle",
+      "type": "text",
+      "source": "{{document.title}}",
+      "position": {
+        "x": 168,
+        "y": 722.64,
+        "width": 307.2,
+        "height": 25.2
+      },
+      "style": {
+        "font": "bold",
+        "size": 11,
+        "align": "center",
+        "color": "#000000",
+        "wrap": true
+      }
+    },
+    {
+      "id": "label_codigo",
+      "type": "text",
+      "source": "Código:",
+      "position": {
+        "x": 168,
+        "y": 703.2,
+        "width": 44.4,
+        "height": 19.92
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "center",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "docId",
+      "type": "text",
+      "source": "{{document.code}}",
+      "position": {
+        "x": 212.4,
+        "y": 703.2,
+        "width": 262.8,
+        "height": 19.92
+      },
+      "style": {
+        "font": "bold",
+        "size": 11,
+        "align": "center",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_area",
+      "type": "text",
+      "source": "Área:",
+      "position": {
+        "x": 71.04,
+        "y": 688.8,
+        "width": 48.96,
+        "height": 14.4
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "areaCode",
+      "type": "text",
+      "source": "{{context.areaCode}}",
+      "position": {
+        "x": 120,
+        "y": 688.8,
+        "width": 33.84,
+        "height": 14.4
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "center",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "areaName",
+      "type": "text",
+      "source": "{{context.areaName}}",
+      "position": {
+        "x": 153.84,
+        "y": 688.8,
+        "width": 250.08,
+        "height": 14.4
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_classification",
+      "type": "text",
+      "source": "Classification:",
+      "position": {
+        "x": 403.92,
+        "y": 688.8,
+        "width": 71.28,
+        "height": 14.4
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "confidentialityName",
+      "type": "text",
+      "source": "{{context.classificationName}}",
+      "position": {
+        "x": 475.2,
+        "y": 688.8,
+        "width": 65.52,
+        "height": 14.4
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "right",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_criticidad",
+      "type": "text",
+      "source": "Criticidad:",
+      "position": {
+        "x": 71.04,
+        "y": 675.36,
+        "width": 48.96,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "criticalityCode",
+      "type": "text",
+      "source": "{{context.criticalityCode}}",
+      "position": {
+        "x": 120,
+        "y": 675.36,
+        "width": 33.84,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "criticalityName",
+      "type": "text",
+      "source": "{{context.criticalityName}}",
+      "position": {
+        "x": 153.84,
+        "y": 675.36,
+        "width": 58.56,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_version",
+      "type": "text",
+      "source": "Versión:",
+      "position": {
+        "x": 212.4,
+        "y": 675.36,
+        "width": 42,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "semantic_finalPhase",
+      "type": "text",
+      "source": "{{document.semanticVersion}}",
+      "position": {
+        "x": 254.4,
+        "y": 675.36,
+        "width": 56.4,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "finalPhase",
+      "type": "text",
+      "source": "{{context.destinationPhase}}",
+      "position": {
+        "x": 310.8,
+        "y": 675.36,
+        "width": 93.12,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_fechaPub",
+      "type": "text",
+      "source": "Fecha Pub:",
+      "position": {
+        "x": 403.92,
+        "y": 675.36,
+        "width": 71.28,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "publicationDate",
+      "type": "text",
+      "source": "{{document.publicationDate}}",
+      "position": {
+        "x": 475.2,
+        "y": 675.36,
+        "width": 65.52,
+        "height": 13.44
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "right",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_tipo",
+      "type": "text",
+      "source": "Tipo:",
+      "position": {
+        "x": 71.04,
+        "y": 660,
+        "width": 48.96,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "typeCode",
+      "type": "text",
+      "source": "{{context.typeCode}}",
+      "position": {
+        "x": 120,
+        "y": 660,
+        "width": 33.84,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "typeName",
+      "type": "text",
+      "source": "{{context.typeName}}",
+      "position": {
+        "x": 153.84,
+        "y": 660,
+        "width": 58.56,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_etapa",
+      "type": "text",
+      "source": "Etapa:",
+      "position": {
+        "x": 212.4,
+        "y": 660,
+        "width": 42,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "currentPhase",
+      "type": "text",
+      "source": "{{context.currentPhase}}",
+      "position": {
+        "x": 254.4,
+        "y": 660,
+        "width": 56.4,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "statuscurrentPhase",
+      "type": "text",
+      "source": "{{context.statuscurrentPhase}}",
+      "position": {
+        "x": 310.8,
+        "y": 660,
+        "width": 58.8,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "correlativocurrentPhase",
+      "type": "text",
+      "source": "{{context.correlativocurrentPhase}}",
+      "position": {
+        "x": 369.6,
+        "y": 660,
+        "width": 33.6,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "label_estado",
+      "type": "text",
+      "source": "Estado:",
+      "position": {
+        "x": 403.92,
+        "y": 660,
+        "width": 71.28,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "left",
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "stagePhase",
+      "type": "text",
+      "source": "{{context.stagePhase}}",
+      "position": {
+        "x": 475.2,
+        "y": 660,
+        "width": 65.52,
+        "height": 15.36
+      },
+      "style": {
+        "font": "regular",
+        "size": 9,
+        "align": "right",
+        "color": "#000000"
+      }
+    }
+  ],
+  "tables": [
+    {
+      "id": "firmas_y_aprobaciones",
+      "type": "fixed",
+      "position": {
+        "x": 70.56,
+        "y": 635.76
+      },
+      "width": 469.44,
+      "columns": [
+        {
+          "id": "accion",
+          "header": "Acción",
+          "width": 51.12,
+          "align": "left"
+        },
+        {
+          "id": "nombre",
+          "header": "Nombre",
+          "width": 87.12,
+          "align": "left"
+        },
+        {
+          "id": "cargo",
+          "header": "Cargo",
+          "width": 48.24,
+          "align": "left"
+        },
+        {
+          "id": "id_checklist",
+          "header": "ID Check List",
+          "width": 100.8,
+          "align": "left"
+        },
+        {
+          "id": "fecha",
+          "header": "Fecha",
+          "width": 89.28,
+          "align": "left"
+        },
+        {
+          "id": "estado",
+          "header": "Estado",
+          "width": 92.88,
+          "align": "left"
+        }
+      ],
+      "rows": [
+        {
+          "cells": [
+            {
+              "source": "Elaboró",
+              "size": 5
+            },
+            {
+              "source": "{{participants.creator.name}}",
+              "size": 5
+            },
+            {
+              "source": "{{participants.creator.jobTitle}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.creator.id}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.creator.date}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.creator.status}}",
+              "size": 5
+            }
+          ],
+          "height": 16.56
+        },
+        {
+          "cells": [
+            {
+              "source": "Revisó",
+              "size": 5
+            },
+            {
+              "source": "{{participants.reviewers[0].name}}",
+              "size": 5
+            },
+            {
+              "source": "{{participants.reviewers[0].jobTitle}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.review[0].id}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.review[0].date}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.review[0].status}}",
+              "size": 5
+            }
+          ],
+          "height": 16.56
+        },
+        {
+          "cells": [
+            {
+              "source": "QAC",
+              "size": 5
+            },
+            {
+              "source": "{{participants.qac.name}}",
+              "size": 5
+            },
+            {
+              "source": "{{participants.qac.jobTitle}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.qac.id}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.qac.date}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.qac.status}}",
+              "size": 5
+            }
+          ],
+          "height": 16.56
+        },
+        {
+          "cells": [
+            {
+              "source": "Aprobó",
+              "size": 5
+            },
+            {
+              "source": "{{participants.approvers[0].name}}",
+              "size": 5
+            },
+            {
+              "source": "{{participants.approvers[0].jobTitle}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.approval[0].id}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.approval[0].date}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.approval[0].status}}",
+              "size": 5
+            }
+          ],
+          "height": 16.56
+        },
+        {
+          "cells": [
+            {
+              "source": "Publicó",
+              "size": 5
+            },
+            {
+              "source": "{{participants.dcontrol.name}}",
+              "size": 5
+            },
+            {
+              "source": "{{participants.dcontrol.jobTitle}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.publish.id}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.publish.date}}",
+              "size": 5
+            },
+            {
+              "source": "{{checklists.publish.status}}",
+              "size": 5
+            }
+          ],
+          "height": 16.56
+        }
+      ],
+      "titleRow": {
+        "text": "FIRMAS Y APROBACIONES",
+        "height": 28.08,
+        "size": 11,
+        "align": "center"
+      },
+      "headerRow": {
+        "height": 25.92,
+        "size": 9
+      }
+    },
+    {
+      "id": "signing_container",
+      "type": "signature_blocks",
+      "position": {
+        "x": 70.56,
+        "y": 493.2
+      },
+      "columns": [],
+      "blocks": [
+        {
+          "id": "preparer_block",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 128.16,
+          "rows": [
+            {
+              "height": 13.68,
+              "text": "Prepared by:",
+              "align": "left",
+              "size": 9,
+              "border_bottom": false
+            },
+            {
+              "height": 5.04,
+              "source": "{{participants.creator.name}}",
+              "align": "right",
+              "size": 9,
+              "border_top": false
+            },
+            {
+              "height": 9.36,
+              "columns": [
+                {
+                  "width": 42.48,
+                  "text": "Date",
+                  "align": "left",
+                  "size": 9
+                },
+                {
+                  "width": 85.68,
+                  "source": "{{checklists.creator.date}}",
+                  "align": "center",
+                  "size": 5
+                }
+              ]
+            },
+            {
+              "height": 5.76,
+              "text": "Signature:",
+              "align": "left",
+              "size": 9
+            },
+            {
+              "height": 41.04,
+              "source": "{{participants.creator.signature}}",
+              "type": "image",
+              "align": "center"
+            }
+          ]
+        },
+        {
+          "id": "reviewer_block",
+          "position": {
+            "x": 163.44,
+            "y": 0
+          },
+          "width": 128.16,
+          "rows": [
+            {
+              "height": 13.68,
+              "text": "Reviewed by:",
+              "align": "left",
+              "size": 9,
+              "border_bottom": false
+            },
+            {
+              "height": 5.04,
+              "source": "{{participants.reviewers[0].name}}",
+              "align": "right",
+              "size": 9,
+              "border_top": false
+            },
+            {
+              "height": 9.36,
+              "columns": [
+                {
+                  "width": 42.48,
+                  "text": "Date",
+                  "align": "left",
+                  "size": 9
+                },
+                {
+                  "width": 85.68,
+                  "source": "{{checklists.review[0].date}}",
+                  "align": "center",
+                  "size": 5
+                }
+              ]
+            },
+            {
+              "height": 5.76,
+              "text": "Signature:",
+              "align": "left",
+              "size": 9
+            },
+            {
+              "height": 41.04,
+              "source": "{{participants.reviewers[0].signature}}",
+              "type": "image",
+              "align": "center"
+            }
+          ]
+        },
+        {
+          "id": "qac_block",
+          "position": {
+            "x": 326.88,
+            "y": 0
+          },
+          "width": 128.16,
+          "rows": [
+            {
+              "height": 13.68,
+              "text": "QAC:",
+              "align": "left",
+              "size": 9,
+              "border_bottom": false
+            },
+            {
+              "height": 5.04,
+              "source": "{{participants.qac.name}}",
+              "align": "right",
+              "size": 9,
+              "border_top": false
+            },
+            {
+              "height": 9.36,
+              "columns": [
+                {
+                  "width": 42.48,
+                  "text": "Date",
+                  "align": "left",
+                  "size": 9
+                },
+                {
+                  "width": 85.68,
+                  "source": "{{checklists.qac.date}}",
+                  "align": "center",
+                  "size": 5
+                }
+              ]
+            },
+            {
+              "height": 5.76,
+              "text": "Signature:",
+              "align": "left",
+              "size": 9
+            },
+            {
+              "height": 41.04,
+              "source": "{{participants.qac.signature}}",
+              "type": "image",
+              "align": "center"
+            }
+          ]
+        },
+        {
+          "id": "approver_block",
+          "position": {
+            "x": 84.96,
+            "y": 93.6
+          },
+          "width": 128.16,
+          "rows": [
+            {
+              "height": 13.68,
+              "text": "Approved by:",
+              "align": "left",
+              "size": 9,
+              "border_bottom": false
+            },
+            {
+              "height": 5.04,
+              "source": "{{participants.approvers[0].name}}",
+              "align": "right",
+              "size": 9,
+              "border_top": false
+            },
+            {
+              "height": 9.36,
+              "columns": [
+                {
+                  "width": 42.48,
+                  "text": "Date",
+                  "align": "left",
+                  "size": 9
+                },
+                {
+                  "width": 85.68,
+                  "source": "{{checklists.approval[0].date}}",
+                  "align": "center",
+                  "size": 5
+                }
+              ]
+            },
+            {
+              "height": 5.76,
+              "text": "Signature:",
+              "align": "left",
+              "size": 9
+            },
+            {
+              "height": 41.04,
+              "source": "{{participants.approvers[0].signature}}",
+              "type": "image",
+              "align": "center"
+            }
+          ]
+        },
+        {
+          "id": "publisher_block",
+          "position": {
+            "x": 248.4,
+            "y": 93.6
+          },
+          "width": 128.16,
+          "rows": [
+            {
+              "height": 13.68,
+              "text": "Published by:",
+              "align": "left",
+              "size": 9,
+              "border_bottom": false
+            },
+            {
+              "height": 5.04,
+              "source": "{{participants.dcontrol.name}}",
+              "align": "right",
+              "size": 9,
+              "border_top": false
+            },
+            {
+              "height": 9.36,
+              "columns": [
+                {
+                  "width": 42.48,
+                  "text": "Date",
+                  "align": "left",
+                  "size": 9
+                },
+                {
+                  "width": 85.68,
+                  "source": "{{checklists.publish.date}}",
+                  "align": "center",
+                  "size": 5
+                }
+              ]
+            },
+            {
+              "height": 5.76,
+              "text": "Signature:",
+              "align": "left",
+              "size": 9
+            },
+            {
+              "height": 41.04,
+              "source": "{{participants.dcontrol.signature}}",
+              "type": "image",
+              "align": "center"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control_de_cambios",
+      "type": "dynamic",
+      "source": "{{revision_history}}",
+      "position": {
+        "x": 70.56,
+        "y": 265.68
+      },
+      "width": 469.44,
+      "columns": [
+        {
+          "id": "version",
+          "header": "Versión",
+          "width": 76.32,
+          "align": "left"
+        },
+        {
+          "id": "fecha",
+          "header": "Fecha",
+          "width": 59.76,
+          "align": "left"
+        },
+        {
+          "id": "descripcion",
+          "header": "Descripción revisión",
+          "width": 243.36,
+          "align": "left"
+        },
+        {
+          "id": "responsable",
+          "header": "Responsable",
+          "width": 90,
+          "align": "left"
+        }
+      ],
+      "rowTemplate": {
+        "cells": [
+          {
+            "source": "{{version}}",
+            "size": 9
+          },
+          {
+            "source": "{{date}}",
+            "size": 9
+          },
+          {
+            "source": "{{revisionDescription}}",
+            "size": 9,
+            "wrap": true
+          },
+          {
+            "source": "{{responsibleName}}",
+            "size": 9
+          }
+        ],
+        "height": 16.56
+      },
+      "titleRow": {
+        "text": "CONTROL DE CAMBIOS",
+        "height": 28.08,
+        "size": 11,
+        "align": "center"
+      },
+      "headerRow": {
+        "height": 23.04,
+        "size": 9
+      }
+    }
+  ]
+}

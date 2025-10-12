@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://passfy.com/schemas/header-footer.schema.json",
+  "title": "Header/Footer Configuration Schema",
+  "description": "Defines header and footer layout for body pages",
+  "type": "object",
+  "required": ["version", "page", "fonts", "header"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the configuration"
+    },
+    "page": {
+      "type": "object",
+      "required": ["width", "height", "unit"],
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Page width in specified unit"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Page height in specified unit"
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["point", "inch", "mm"],
+          "description": "Unit of measurement"
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "required": ["regular", "bold"],
+      "properties": {
+        "regular": {
+          "type": "string",
+          "description": "Path to regular font file"
+        },
+        "bold": {
+          "type": "string",
+          "description": "Path to bold font file"
+        }
+      }
+    },
+    "header": {
+      "type": "object",
+      "required": ["enabled", "height", "position", "content"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable header"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Header height"
+        },
+        "position": {
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "X coordinate"
+            },
+            "y": {
+              "type": "number",
+              "description": "Y coordinate"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Header width"
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Header height"
+            }
+          }
+        },
+        "content": {
+          "type": "object",
+          "required": ["type", "elements", "style"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["simple", "composite"],
+              "description": "Content composition type"
+            },
+            "elements": {
+              "type": "array",
+              "description": "Content elements",
+              "items": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "Text template"
+                  },
+                  "separator": {
+                    "type": "string",
+                    "description": "Separator after this element"
+                  }
+                }
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "font": {
+                  "type": "string",
+                  "enum": ["regular", "bold"],
+                  "description": "Font weight"
+                },
+                "size": {
+                  "type": "number",
+                  "minimum": 1,
+                  "description": "Font size in points"
+                },
+                "align": {
+                  "type": "string",
+                  "enum": ["left", "center", "right"],
+                  "description": "Text alignment"
+                },
+                "wrap": {
+                  "type": "boolean",
+                  "description": "Enable text wrapping"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "Text color in hex format"
+                }
+              }
+            }
+          }
+        },
+        "border": {
+          "type": "object",
+          "description": "Border configuration",
+          "properties": {
+            "top": {
+              "type": "boolean",
+              "description": "Show top border"
+            },
+            "bottom": {
+              "type": "boolean",
+              "description": "Show bottom border"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Border width"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Border color in hex format"
+            }
+          }
+        }
+      }
+    },
+    "footer": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable footer"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Footer height"
+        },
+        "position": {
+          "type": "object",
+          "description": "Footer position"
+        },
+        "content": {
+          "type": "object",
+          "description": "Footer content"
+        },
+        "border": {
+          "type": "object",
+          "description": "Footer border configuration"
+        }
+      }
+    }
+  }
+}

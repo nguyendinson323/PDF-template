@@ -1,0 +1,103 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-SEC-001",
+    "title": "Access Control Policy",
+    "semanticVersion": "v1.0.0",
+    "publicationDate": "2024-08-25",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "a3f2b9c8d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0",
+      "tsaTime": "2024-08-25T10:30:00Z",
+      "tsaSerial": "TSA-2024-001"
+    }
+  },
+  "context": {
+    "areaCode": "SEC",
+    "areaName": "Security",
+    "classificationName": "Confidential",
+    "criticalityCode": "H",
+    "criticalityName": "High",
+    "typeCode": "POL",
+    "typeName": "Policy",
+    "currentPhase": "Published",
+    "statuscurrentPhase": "Active",
+    "correlativocurrentPhase": "001",
+    "destinationPhase": "Production",
+    "stagePhase": "Published"
+  },
+  "participants": {
+    "creator": {
+      "name": "John Smith",
+      "jobTitle": "Security Analyst",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Jane Doe",
+        "jobTitle": "Senior Analyst",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Bob Johnson",
+      "jobTitle": "QAC Manager",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Alice Williams",
+        "jobTitle": "Director",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Charlie Brown",
+      "jobTitle": "Doc Control",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-001",
+      "date": "2024-08-20",
+      "status": "Completed"
+    },
+    "review": [
+      {
+        "id": "CL-002",
+        "date": "2024-08-21",
+        "status": "Completed"
+      }
+    ],
+    "qac": {
+      "id": "CL-003",
+      "date": "2024-08-22",
+      "status": "Completed"
+    },
+    "approval": [
+      {
+        "id": "CL-004",
+        "date": "2024-08-23",
+        "status": "Completed"
+      }
+    ],
+    "publish": {
+      "id": "CL-005",
+      "date": "2024-08-25",
+      "status": "Completed"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v1.0.0",
+      "date": "2024-08-25",
+      "revisionDescription": "Initial production release",
+      "responsibleName": "Charlie Brown"
+    }
+  ]
+}

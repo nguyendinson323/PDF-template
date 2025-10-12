@@ -1,0 +1,303 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://passfy.com/schemas/manifest.schema.json",
+  "title": "Cover Page Manifest Schema",
+  "description": "Defines dynamic field positioning for PDF cover generation",
+  "type": "object",
+  "required": ["version", "page", "fonts", "fields", "tables"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the manifest"
+    },
+    "page": {
+      "type": "object",
+      "required": ["width", "height", "unit"],
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Page width in specified unit"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Page height in specified unit"
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["point", "inch", "mm"],
+          "description": "Unit of measurement"
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "required": ["regular", "bold"],
+      "properties": {
+        "regular": {
+          "type": "string",
+          "description": "Path to regular font file"
+        },
+        "bold": {
+          "type": "string",
+          "description": "Path to bold font file"
+        }
+      }
+    },
+    "logo": {
+      "type": "object",
+      "required": ["source", "position"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "URL template for logo image"
+        },
+        "position": {
+          "type": "object",
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "X coordinate"
+            },
+            "y": {
+              "type": "number",
+              "description": "Y coordinate"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Width"
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Height"
+            }
+          }
+        },
+        "align": {
+          "type": "string",
+          "enum": ["left", "center", "right"]
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["fit", "fill", "stretch"]
+        }
+      }
+    },
+    "qrCode": {
+      "type": "object",
+      "required": ["source", "position"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "URL template for QR code generation"
+        },
+        "position": {
+          "type": "object",
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number", "minimum": 0 },
+            "height": { "type": "number", "minimum": 0 }
+          }
+        },
+        "align": {
+          "type": "string",
+          "enum": ["left", "center", "right"]
+        },
+        "errorCorrection": {
+          "type": "string",
+          "enum": ["L", "M", "Q", "H"],
+          "default": "M",
+          "description": "QR code error correction level"
+        }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "description": "Array of dynamic text fields",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "source", "position", "style"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique field identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["text", "image", "qrcode"],
+            "description": "Field type"
+          },
+          "source": {
+            "type": "string",
+            "description": "Data source template or static text"
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "width": { "type": "number", "minimum": 0 },
+              "height": { "type": "number", "minimum": 0 }
+            }
+          },
+          "style": {
+            "type": "object",
+            "properties": {
+              "font": {
+                "type": "string",
+                "enum": ["regular", "bold"],
+                "description": "Font weight"
+              },
+              "size": {
+                "type": "number",
+                "minimum": 1,
+                "description": "Font size in points"
+              },
+              "align": {
+                "type": "string",
+                "enum": ["left", "center", "right"],
+                "description": "Text alignment"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "description": "Text color in hex format"
+              },
+              "wrap": {
+                "type": "boolean",
+                "description": "Enable text wrapping"
+              }
+            }
+          },
+          "conditional": {
+            "type": "object",
+            "description": "Conditional rendering rules",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Field path to check"
+              },
+              "operator": {
+                "type": "string",
+                "enum": ["equals", "notEmpty", "exists"],
+                "description": "Comparison operator"
+              },
+              "value": {
+                "type": ["string", "number", "boolean"],
+                "description": "Value to compare against"
+              }
+            }
+          }
+        }
+      }
+    },
+    "tables": {
+      "type": "array",
+      "description": "Array of table definitions",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "position", "columns"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique table identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["fixed", "dynamic", "signature_blocks"],
+            "description": "Table type"
+          },
+          "source": {
+            "type": "string",
+            "description": "Data source for dynamic tables"
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" }
+            }
+          },
+          "width": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Table width"
+          },
+          "columns": {
+            "type": "array",
+            "description": "Column definitions",
+            "items": {
+              "type": "object",
+              "required": ["id", "width"],
+              "properties": {
+                "id": { "type": "string" },
+                "header": { "type": "string" },
+                "width": { "type": "number", "minimum": 0 },
+                "align": {
+                  "type": "string",
+                  "enum": ["left", "center", "right"]
+                }
+              }
+            }
+          },
+          "rows": {
+            "type": "array",
+            "description": "Row definitions for fixed tables"
+          },
+          "rowTemplate": {
+            "type": "object",
+            "description": "Template for dynamic table rows",
+            "properties": {
+              "cells": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source": { "type": "string" },
+                    "size": { "type": "number" },
+                    "wrap": { "type": "boolean" }
+                  }
+                }
+              },
+              "height": { "type": "number" }
+            }
+          },
+          "titleRow": {
+            "type": "object",
+            "description": "Table title row configuration",
+            "properties": {
+              "text": { "type": "string" },
+              "height": { "type": "number" },
+              "size": { "type": "number" },
+              "align": { "type": "string" }
+            }
+          },
+          "headerRow": {
+            "type": "object",
+            "description": "Table header row configuration",
+            "properties": {
+              "height": { "type": "number" },
+              "size": { "type": "number" }
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "description": "Signature blocks for signature_blocks type"
+          }
+        }
+      }
+    }
+  }
+}

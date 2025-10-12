@@ -1,0 +1,127 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-LONG-777",
+    "title": "Document Testing Extremely Long Descriptions and Text Overflow Handling",
+    "semanticVersion": "v4.8.2",
+    "publicationDate": "2024-10-12",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "tsaTime": "2024-10-12T18:00:00Z",
+      "tsaSerial": "TSA-2024-777"
+    }
+  },
+  "context": {
+    "areaCode": "TEST",
+    "areaName": "Testing and Quality Engineering with Extended Department Name",
+    "classificationName": "Confidential",
+    "criticalityCode": "H",
+    "criticalityName": "High",
+    "typeCode": "TEST",
+    "typeName": "Test Document",
+    "currentPhase": "Published",
+    "statuscurrentPhase": "Active",
+    "correlativocurrentPhase": "777",
+    "destinationPhase": "Production",
+    "stagePhase": "Published"
+  },
+  "participants": {
+    "creator": {
+      "name": "Elizabeth Alexandra Mary Windsor",
+      "jobTitle": "Senior Principal Staff Software Engineer III",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Maximilian Alexander Christopher",
+        "jobTitle": "Distinguished Technical Review Architect",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Victoria Catherine Margaret",
+      "jobTitle": "Executive Director of Quality Assurance and Compliance",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Benjamin Theodore Roosevelt",
+        "jobTitle": "Chief Executive Officer and Board Chairman",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Anastasia Wilhelmina Josephine",
+      "jobTitle": "Global Document Control and Information Management Director",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-LONG-777-CREATOR-2024-Q4",
+      "date": "2024-10-01",
+      "status": "Completed"
+    },
+    "review": [
+      {
+        "id": "CL-LONG-777-REVIEW-2024-Q4",
+        "date": "2024-10-05",
+        "status": "Approved"
+      }
+    ],
+    "qac": {
+      "id": "CL-LONG-777-QAC-2024-Q4",
+      "date": "2024-10-08",
+      "status": "Verified"
+    },
+    "approval": [
+      {
+        "id": "CL-LONG-777-APPROVAL-2024-Q4",
+        "date": "2024-10-10",
+        "status": "Authorized"
+      }
+    ],
+    "publish": {
+      "id": "CL-LONG-777-PUBLISH-2024-Q4",
+      "date": "2024-10-12",
+      "status": "Published"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v4.8.2",
+      "date": "2024-10-12",
+      "revisionDescription": "This is an extremely long revision description designed to test text wrapping, overflow handling, and multi-line rendering capabilities within table cells. The description includes multiple sentences to simulate real-world scenarios where revision notes might contain detailed technical information, bug fix descriptions, feature enhancement details, and comprehensive explanations of changes made to the document. This helps ensure that the PDF rendering engine can properly handle text that exceeds the normal cell width and needs to wrap to multiple lines within the table structure while maintaining readability and proper formatting.",
+      "responsibleName": "Anastasia Wilhelmina Josephine"
+    },
+    {
+      "version": "v4.8.1",
+      "date": "2024-09-28",
+      "revisionDescription": "Another lengthy description testing the system's ability to handle extended text content in revision history tables. This particular revision addresses performance optimization issues discovered during load testing, implements new caching mechanisms to improve response times, updates database indexing strategies for better query performance, and includes comprehensive regression testing results to validate that all existing functionality continues to work as expected after the performance improvements were implemented.",
+      "responsibleName": "Anastasia Wilhelmina Josephine"
+    },
+    {
+      "version": "v4.8.0",
+      "date": "2024-09-15",
+      "revisionDescription": "Major version update including significant architectural changes: migration from monolithic to microservices architecture, implementation of event-driven communication patterns, integration of advanced monitoring and observability tools, enhancement of security protocols including zero-trust architecture principles, and comprehensive documentation updates reflecting the new system design and operational procedures.",
+      "responsibleName": "Victoria Catherine Margaret"
+    },
+    {
+      "version": "v4.7.9",
+      "date": "2024-09-01",
+      "revisionDescription": "Security patch release addressing multiple vulnerabilities identified in third-party dependencies, including updates to authentication libraries, encryption algorithms, and certificate validation procedures.",
+      "responsibleName": "Elizabeth Alexandra Mary Windsor"
+    },
+    {
+      "version": "v4.7.8",
+      "date": "2024-08-20",
+      "revisionDescription": "Bug fixes and minor improvements to user interface components, error handling mechanisms, and logging infrastructure to improve troubleshooting capabilities.",
+      "responsibleName": "Maximilian Alexander Christopher"
+    }
+  ]
+}
