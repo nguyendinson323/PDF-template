@@ -8,6 +8,7 @@ const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
+const QRCode = require('qrcode');
 
 // ==================================================================================
 // CONFIGURATION
@@ -27,6 +28,22 @@ const BLOCK_SPACING = 30;
 // ==================================================================================
 
 const round2 = n => Math.round(n * 100) / 100;
+
+// Generate QR code as PNG buffer
+async function generateQRCode(text, width = 200) {
+  try {
+    const buffer = await QRCode.toBuffer(text, {
+      errorCorrectionLevel: 'M',
+      type: 'png',
+      width: width,
+      margin: 1
+    });
+    return buffer;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    return null;
+  }
+}
 
 function edgeKey(x1, y1, x2, y2) {
   const a = `${round2(x1)},${round2(y1)}`;
@@ -240,8 +257,8 @@ function drawAlignedText(page, font, text, x, yBottom, width, height, size, alig
 // RENDERING FUNCTIONS - Header
 // ==================================================================================
 
-function renderCoverHeader(context) {
-  const { page, font, stroke, payload, headerFooter, leftMargin } = context;
+async function renderCoverHeader(context) {
+  const { page, font, stroke, payload, headerFooter, leftMargin, pdfDoc } = context;
   let { currentY } = context;
   
   for (const row of headerFooter.header.rows) {
@@ -381,10 +398,33 @@ function renderCoverHeader(context) {
       } else {
         drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
         
-        const textContent = getTextContent(col, payload);
-        if (textContent && col.type !== 'image') {
-          const textSize = col.text_size || 9;
-          drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+        if (col.type === 'image' && col.source) {
+          // Generate QR code for image columns
+          const qrData = resolveTemplate(col.source, payload);
+          if (qrData) {
+            const qrBuffer = await generateQRCode(qrData, colWidth * 3);
+            if (qrBuffer) {
+              const qrImage = await pdfDoc.embedPng(qrBuffer);
+              const qrDims = qrImage.scale(colWidth / qrImage.width);
+              
+              // Center the QR code in the cell
+              const qrX = currentX + (colWidth - qrDims.width) / 2;
+              const qrY = currentY - rowHeight + (rowHeight - qrDims.height) / 2;
+              
+              page.drawImage(qrImage, {
+                x: qrX,
+                y: qrY,
+                width: qrDims.width,
+                height: qrDims.height
+              });
+            }
+          }
+        } else {
+          const textContent = getTextContent(col, payload);
+          if (textContent) {
+            const textSize = col.text_size || 9;
+            drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+          }
         }
       }
       
@@ -401,7 +441,7 @@ function renderCoverHeader(context) {
 // RENDERING FUNCTIONS - Approval Table
 // ==================================================================================
 
-function renderApprovalTable(context) {
+async function renderApprovalTable(context) {
   const { font, payload, leftMargin, usableWidth, firmas, pdfDoc, headerFooter, manifest, pageWidth, pageHeight, topMargin, bottomMargin, minY } = context;
   let { currentY, page, stroke } = context;
   
@@ -456,7 +496,7 @@ function renderApprovalTable(context) {
       
       // Render document header on new page
       currentY = headerFooter.header.y_position + headerFooter.header.height;
-      currentY = renderCoverHeader({ ...context, page, stroke, currentY });
+      currentY = await renderCoverHeader({ ...context, page, stroke, currentY });
       
       // Apply table margin_top on new page
       currentY -= (firmas.margin_top || 0);
@@ -643,7 +683,7 @@ function renderSignatureBlocks(context) {
 // RENDERING FUNCTIONS - Revision Table
 // ==================================================================================
 
-function renderRevisionTable(context) {
+async function renderRevisionTable(context) {
   const { font, payload, leftMargin, usableWidth, rev, pdfDoc, headerFooter, manifest, pageWidth, pageHeight, topMargin, bottomMargin, minY } = context;
   let { currentY, page, stroke } = context;
   
@@ -700,7 +740,7 @@ function renderRevisionTable(context) {
         
         // Render document header on new page
         currentY = headerFooter.header.y_position + headerFooter.header.height;
-        currentY = renderCoverHeader({ ...context, page, stroke, currentY });
+        currentY = await renderCoverHeader({ ...context, page, stroke, currentY });
         
         // Apply table margin_top on new page
         currentY -= (rev.margin_top || 0);
@@ -909,7 +949,7 @@ async function generateGoldenPdf(payloadFile) {
     });
     
     // Centralized page overflow handler
-    function addNewPage() {
+    async function addNewPage() {
       // Don't render footer here - we'll render all footers at the end with correct page numbers
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
@@ -917,18 +957,18 @@ async function generateGoldenPdf(payloadFile) {
       // Render full cover header on new page at the same position as first page
       // Reset currentY to TOP of page before rendering header
       currentY = headerFooter.header.y_position + headerFooter.header.height;
-      const newPageY = renderCoverHeader(buildContext());
+      const newPageY = await renderCoverHeader(buildContext());
       return newPageY;
     }
     
-    function ensureSpace(requiredHeight) {
+    async function ensureSpace(requiredHeight) {
       if (currentY - requiredHeight < minY) {
-        currentY = addNewPage();
+        currentY = await addNewPage();
       }
     }
 
     // Render cover header
-    currentY = renderCoverHeader(buildContext());
+    currentY = await renderCoverHeader(buildContext());
     
     // Get table configurations
     const tables = manifest.content?.tables || [];
@@ -938,13 +978,13 @@ async function generateGoldenPdf(payloadFile) {
     
     // Render approval table with overflow check
     if (firmas) {
-      ensureSpace(150); // Estimated minimum height for approval table
-      currentY = renderApprovalTable({ ...buildContext(), currentY, firmas });
+      await ensureSpace(150); // Estimated minimum height for approval table
+      currentY = await renderApprovalTable({ ...buildContext(), currentY, firmas });
     }
     
     // Render signature blocks with overflow check
     if (signing) {
-      ensureSpace(200); // Estimated minimum height for signature blocks
+      await ensureSpace(200); // Estimated minimum height for signature blocks
       currentY = renderSignatureBlocks({ ...buildContext(), currentY, signing });
     }
     
@@ -953,8 +993,8 @@ async function generateGoldenPdf(payloadFile) {
       const estimatedHeight = payload.revision_history?.length 
         ? rev.title.height + rev.header.height + (rev.row_template.height * payload.revision_history.length)
         : 100;
-      ensureSpace(estimatedHeight);
-      currentY = renderRevisionTable({ ...buildContext(), currentY, rev });
+      await ensureSpace(estimatedHeight);
+      currentY = await renderRevisionTable({ ...buildContext(), currentY, rev });
     }
 
     // Render footers on all pages with correct page numbers
