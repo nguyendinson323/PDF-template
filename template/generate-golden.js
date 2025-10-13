@@ -1,30 +1,39 @@
-// generate-golden.js — Generate golden PDFs from test payloads
+// ==================================================================================
+// Golden PDF Generator - Passfy Document Control Template Pack
+// ==================================================================================
+// Generates test PDFs from payload data with dynamic table handling
+// ==================================================================================
+
 const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
 
-// ANSI color codes for terminal output
-const colors = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+// ==================================================================================
+// CONFIGURATION
+// ==================================================================================
+
+const BORDER_CONFIG = { 
+  color: rgb(0, 0, 0), 
+  thickness: 0 
 };
 
-console.log(`${colors.cyan}======================================${colors.reset}`);
-console.log(`${colors.cyan}  Golden PDF Generator${colors.reset}`);
-console.log(`${colors.cyan}======================================${colors.reset}\n`);
+const LINE_SPACING = 1.2;
+const TEXT_MARGIN = 4;
+const BLOCK_SPACING = 30;
 
-// ---------- stroke utilities (dedupe shared edges) ----------
+// ==================================================================================
+// UTILITY FUNCTIONS - Geometry & Stroke
+// ==================================================================================
+
 const round2 = n => Math.round(n * 100) / 100;
+
 function edgeKey(x1, y1, x2, y2) {
   const a = `${round2(x1)},${round2(y1)}`;
   const b = `${round2(x2)},${round2(y2)}`;
   return a <= b ? `${a}|${b}` : `${b}|${a}`;
 }
+
 function makeStroker(page, color, thickness = 0) {
   const seen = new Set();
   return function stroke(x1, y1, x2, y2) {
@@ -34,17 +43,30 @@ function makeStroker(page, color, thickness = 0) {
     page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness });
   };
 }
+
 function strokeRect(stroke, x, y, w, h) {
-  stroke(x, y, x + w, y);           // bottom
-  stroke(x, y + h, x + w, y + h);   // top
-  stroke(x, y, x, y + h);           // left
-  stroke(x + w, y, x + w, y + h);   // right
+  stroke(x, y, x + w, y);
+  stroke(x, y + h, x + w, y + h);
+  stroke(x, y, x, y + h);
+  stroke(x + w, y, x + w, y + h);
 }
 
-// ---------- config ----------
-const BORDER_CONFIG = { color: rgb(0, 0, 0), thickness: 0 }; // hairline
+function drawCellBorders(stroke, field, x, y, width, height) {
+  const drawTop = field.border_top !== false;
+  const drawBottom = field.border_bottom !== false;
+  const drawLeft = field.border_left !== false;
+  const drawRight = field.border_right !== false;
+  
+  if (drawTop) stroke(x, y, x + width, y);
+  if (drawBottom) stroke(x, y - height, x + width, y - height);
+  if (drawLeft) stroke(x, y - height, x, y);
+  if (drawRight) stroke(x + width, y - height, x + width, y);
+}
 
-// ---------- helper functions ----------
+// ==================================================================================
+// UTILITY FUNCTIONS - Template Resolution
+// ==================================================================================
+
 function resolveTemplate(template, data) {
   if (!template || typeof template !== 'string') {
     return template || '';
@@ -97,8 +119,11 @@ function getTextContent(field, payload) {
   return null;
 }
 
-// Text wrapping utility - breaks text into lines that fit within maxWidth
-function wrapText(font, text, maxWidth, fontSize, xMargin = 4) {
+// ==================================================================================
+// TEXT RENDERING - Wrapping & Measurement
+// ==================================================================================
+
+function wrapText(font, text, maxWidth, fontSize, xMargin = TEXT_MARGIN) {
   if (!text || text.trim() === '') return [];
   
   const availableWidth = maxWidth - (2 * xMargin);
@@ -116,10 +141,8 @@ function wrapText(font, text, maxWidth, fontSize, xMargin = 4) {
       if (currentLine) {
         lines.push(currentLine);
       }
-      // Check if single word is too long
       const wordWidth = font.widthOfTextAtSize(word, fontSize);
       if (wordWidth > availableWidth) {
-        // Word is too long, need to break it character by character
         let partialWord = '';
         for (const char of word) {
           const testPartial = partialWord + char;
@@ -145,37 +168,29 @@ function wrapText(font, text, maxWidth, fontSize, xMargin = 4) {
   return lines;
 }
 
-// Calculate required height for wrapped text
-function calculateTextHeight(font, text, maxWidth, fontSize, xMargin = 4, lineSpacing = 1.2, minHeight = 17) {
+function calculateTextHeight(font, text, maxWidth, fontSize, xMargin = TEXT_MARGIN, lineSpacing = LINE_SPACING, minHeight = 17) {
   if (!text || text.trim() === '') return minHeight;
   
   const lines = wrapText(font, text, maxWidth, fontSize, xMargin);
   const lineHeight = fontSize * lineSpacing;
-  const totalHeight = lines.length * lineHeight + 4; // Add padding
+  const totalHeight = lines.length * lineHeight + 4;
   
   return Math.max(totalHeight, minHeight);
 }
 
-// Draw multi-line text with wrapping
-function drawMultilineText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4, lineSpacing = 1.2) {
+function drawMultilineText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = TEXT_MARGIN, lineSpacing = LINE_SPACING) {
   if (!text || text.trim() === '') return;
   
   const lines = wrapText(font, text, width, size, xMargin);
   const lineHeight = size * lineSpacing;
-  
-  // Calculate starting Y position for proper vertical centering
   const totalTextHeight = lines.length * lineHeight;
   const verticalPadding = (height - totalTextHeight) / 2;
-  
-  // Start from the center, accounting for baseline which is ~25% from bottom of em-box
-  // For the first line, we position it so the text block is centered
   let currentY = yBottom + verticalPadding + (lines.length - 1) * lineHeight + size * 0.25;
   
   for (const line of lines) {
     const textWidth = font.widthOfTextAtSize(line, size);
     let textX;
     
-    // Apply horizontal margins and alignment
     if (align === 'center') {
       const availableWidth = width - 2 * xMargin;
       textX = x + xMargin + (availableWidth - textWidth) / 2;
@@ -197,12 +212,10 @@ function drawMultilineText(page, font, text, x, yBottom, width, height, size, al
   }
 }
 
-// Single-line text drawing for non-wrapping cells
-function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4) {
+function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = TEXT_MARGIN) {
   const textWidth = font.widthOfTextAtSize(text, size);
   let textX;
   
-  // Apply horizontal margins and alignment
   if (align === 'center') {
     const availableWidth = width - 2 * xMargin;
     textX = x + xMargin + (availableWidth - textWidth) / 2;
@@ -212,7 +225,6 @@ function drawAlignedText(page, font, text, x, yBottom, width, height, size, alig
     textX = x + xMargin;
   }
   
-  // Vertical centering: account for baseline positioning
   const textY = yBottom + height / 2 - size * 0.3;
   
   page.drawText(text, {
@@ -224,44 +236,582 @@ function drawAlignedText(page, font, text, x, yBottom, width, height, size, alig
   });
 }
 
-function drawCellBorders(stroke, field, x, y, width, height) {
-  const drawTop = field.border_top !== false;
-  const drawBottom = field.border_bottom !== false;
-  const drawLeft = field.border_left !== false;
-  const drawRight = field.border_right !== false;
+// ==================================================================================
+// RENDERING FUNCTIONS - Header
+// ==================================================================================
+
+function renderCoverHeader(context) {
+  const { page, font, stroke, payload, headerFooter, leftMargin } = context;
+  let { currentY } = context;
   
-  if (drawTop) stroke(x, y, x + width, y);
-  if (drawBottom) stroke(x, y - height, x + width, y - height);
-  if (drawLeft) stroke(x, y - height, x, y);
-  if (drawRight) stroke(x + width, y - height, x + width, y);
+  for (const row of headerFooter.header.rows) {
+    let rowHeight = row.height;
+    if (rowHeight === "auto") {
+      const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
+      if (containerCol) {
+        rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
+      }
+    }
+    
+    // Calculate dynamic height
+    let calculatedHeight = rowHeight;
+    for (const col of row.columns) {
+      if (col.type === 'container' && col.rows) {
+        let containerTotalHeight = 0;
+        for (const subRow of col.rows) {
+          let subRowHeight = subRow.height;
+          
+          if (subRow.type === 'columns' && subRow.columns) {
+            for (const subCol of subRow.columns) {
+              const textContent = getTextContent(subCol, payload);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+                subRowHeight = Math.max(subRowHeight, cellHeight);
+              }
+            }
+          } else {
+            const textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
+              subRowHeight = Math.max(subRowHeight, cellHeight);
+            }
+          }
+          
+          containerTotalHeight += subRowHeight;
+        }
+        calculatedHeight = Math.max(calculatedHeight, containerTotalHeight);
+      } else if (col.type === 'columns' && col.columns) {
+        for (const subCol of col.columns) {
+          const textContent = getTextContent(subCol, payload);
+          if (textContent && subCol.type !== 'image') {
+            const textSize = subCol.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+            calculatedHeight = Math.max(calculatedHeight, cellHeight);
+          }
+        }
+      } else if (col.type !== 'image') {
+        const textContent = getTextContent(col, payload);
+        if (textContent) {
+          const textSize = col.text_size || 9;
+          const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
+          calculatedHeight = Math.max(calculatedHeight, cellHeight);
+        }
+      }
+    }
+    
+    rowHeight = calculatedHeight;
+    let currentX = leftMargin;
+    
+    // Render columns
+    for (const col of row.columns) {
+      const colWidth = col.width;
+      
+      if (col.type === 'container' && col.rows) {
+        let containerY = currentY;
+        const subRowHeights = [];
+        
+        for (const subRow of col.rows) {
+          let subHeight = subRow.height;
+          
+          if (subRow.type === 'columns' && subRow.columns) {
+            for (const subCol of subRow.columns) {
+              const textContent = getTextContent(subCol, payload);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+                subHeight = Math.max(subHeight, cellHeight);
+              }
+            }
+          } else {
+            const textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize);
+              subHeight = Math.max(subHeight, cellHeight);
+            }
+          }
+          
+          subRowHeights.push(subHeight);
+        }
+        
+        for (let i = 0; i < col.rows.length; i++) {
+          const subRow = col.rows[i];
+          const subHeight = subRowHeights[i];
+          
+          if (subRow.type === 'columns' && subRow.columns) {
+            let subX = currentX;
+            for (const subCol of subRow.columns) {
+              drawCellBorders(stroke, subCol, subX, containerY, subCol.width, subHeight);
+              
+              const textContent = getTextContent(subCol, payload);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                drawMultilineText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align);
+              }
+              
+              subX += subCol.width;
+            }
+          } else {
+            drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
+            
+            const textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+            }
+          }
+          
+          containerY -= subHeight;
+        }
+      } else if (col.type === 'columns' && col.columns) {
+        let subX = currentX;
+        for (const subCol of col.columns) {
+          drawCellBorders(stroke, subCol, subX, currentY, subCol.width, rowHeight);
+          
+          const textContent = getTextContent(subCol, payload);
+          if (textContent && subCol.type !== 'image') {
+            const textSize = subCol.text_size || 9;
+            drawMultilineText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align);
+          }
+          
+          subX += subCol.width;
+        }
+      } else {
+        drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
+        
+        const textContent = getTextContent(col, payload);
+        if (textContent && col.type !== 'image') {
+          const textSize = col.text_size || 9;
+          drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+        }
+      }
+      
+      currentX += colWidth;
+    }
+    
+    currentY -= rowHeight;
+  }
+  
+  return currentY;
 }
 
-// Generate golden PDF for a single payload
+// ==================================================================================
+// RENDERING FUNCTIONS - Approval Table
+// ==================================================================================
+
+function renderApprovalTable(context) {
+  const { page, font, stroke, payload, leftMargin, usableWidth } = context;
+  let { currentY, firmas } = context;
+  
+  if (!firmas) return currentY;
+  
+  currentY -= (firmas.margin_top || 0);
+  const tableX = leftMargin;
+  const titleH = firmas.title.height;
+  const headerH = firmas.header.height;
+  const minRowH = firmas.rows_config.height;
+  
+  context.checkPageOverflow(titleH + headerH + (minRowH * firmas.rows.length * 1.5));
+
+  // Title
+  strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+  if (firmas.title.text) {
+    drawAlignedText(page, font, firmas.title.text, tableX, currentY - titleH, usableWidth, titleH, firmas.title.text_size, 'center');
+  }
+  currentY -= titleH;
+
+  // Header
+  strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+  let accX = tableX;
+  for (const col of firmas.header.columns) {
+    if (col.text) {
+      drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, firmas.header.text_size, 'center');
+    }
+    accX += col.width;
+    if (round2(accX) < round2(tableX + usableWidth)) {
+      stroke(accX, currentY - headerH, accX, currentY);
+    }
+  }
+  currentY -= headerH;
+
+  // Calculate row heights
+  const rowHeights = [];
+  for (let i = 0; i < firmas.rows.length; i++) {
+    let maxHeight = minRowH;
+    
+    for (let j = 0; j < firmas.rows[i].cells.length; j++) {
+      const cell = firmas.rows[i].cells[j];
+      const colWidth = firmas.header.columns[j].width;
+      const textContent = getTextContent(cell, payload);
+      
+      if (textContent) {
+        const cellHeight = calculateTextHeight(font, textContent, colWidth, firmas.rows_config.text_size);
+        maxHeight = Math.max(maxHeight, cellHeight);
+      }
+    }
+    
+    rowHeights.push(maxHeight);
+  }
+  
+  const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
+  strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
+  
+  let rowY = currentY;
+  for (let i = 0; i < firmas.rows.length; i++) {
+    const rowH = rowHeights[i];
+    
+    if (i > 0) {
+      stroke(tableX, rowY, tableX + usableWidth, rowY);
+    }
+    
+    let cellX = tableX;
+    for (let j = 0; j < firmas.rows[i].cells.length; j++) {
+      const cell = firmas.rows[i].cells[j];
+      const colWidth = firmas.header.columns[j].width;
+      const textContent = getTextContent(cell, payload);
+      if (textContent) {
+        drawMultilineText(page, font, textContent, cellX, rowY - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align);
+      }
+      cellX += colWidth;
+    }
+    
+    rowY -= rowH;
+  }
+  
+  accX = tableX;
+  for (const col of firmas.header.columns) {
+    accX += col.width;
+    if (round2(accX) < round2(tableX + usableWidth)) {
+      stroke(accX, currentY - dataH, accX, currentY);
+    }
+  }
+  currentY -= dataH;
+
+  return currentY;
+}
+
+// ==================================================================================
+// RENDERING FUNCTIONS - Signature Blocks
+// ==================================================================================
+
+function renderSignatureBlocks(context) {
+  const { page, font, stroke, payload, leftMargin } = context;
+  let { currentY, signing } = context;
+  
+  if (!signing) return currentY;
+  
+  currentY -= (signing.margin_top || 0);
+  context.checkPageOverflow(200);
+  
+  const baseX = leftMargin;
+  const blockDynamicHeights = [];
+  
+  // Calculate dynamic heights
+  for (const b of signing.blocks) {
+    const rowHeights = [];
+    
+    for (const r of b.rows) {
+      let rowHeight = r.height;
+      
+      if (r.type === 'columns' && r.columns) {
+        for (const col of r.columns) {
+          const textContent = getTextContent(col, payload);
+          if (textContent && col.type !== 'image') {
+            const textSize = col.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, TEXT_MARGIN, LINE_SPACING, r.height);
+            rowHeight = Math.max(rowHeight, cellHeight);
+          }
+        }
+      } else if (r.type !== 'image') {
+        const textContent = getTextContent(r, payload);
+        if (textContent) {
+          const textSize = r.text_size || 9;
+          const cellHeight = calculateTextHeight(font, textContent, b.width, textSize, TEXT_MARGIN, LINE_SPACING, r.height);
+          rowHeight = Math.max(rowHeight, cellHeight);
+        }
+      }
+      
+      rowHeights.push(rowHeight);
+    }
+    
+    blockDynamicHeights.push(rowHeights);
+  }
+
+  // Group blocks by y position
+  const blockRows = new Map();
+  signing.blocks.forEach((b, idx) => {
+    const yPos = b.y || 0;
+    if (!blockRows.has(yPos)) {
+      blockRows.set(yPos, []);
+    }
+    blockRows.get(yPos).push({ block: b, idx: idx, heights: blockDynamicHeights[idx] });
+  });
+  
+  const sortedYPositions = Array.from(blockRows.keys()).sort((a, b) => a - b);
+  
+  // Calculate dynamic y offsets
+  const rowYOffsets = new Map();
+  let cumulativeOffset = 0;
+  
+  for (const yPos of sortedYPositions) {
+    rowYOffsets.set(yPos, cumulativeOffset);
+    
+    const blocksInRow = blockRows.get(yPos);
+    const maxHeightInRow = Math.max(...blocksInRow.map(item => 
+      item.heights.reduce((sum, h) => sum + h, 0)
+    ));
+    
+    cumulativeOffset += maxHeightInRow + BLOCK_SPACING;
+  }
+
+  // Render blocks
+  for (let blockIdx = 0; blockIdx < signing.blocks.length; blockIdx++) {
+    const b = signing.blocks[blockIdx];
+    const rowHeights = blockDynamicHeights[blockIdx];
+    const blockX = baseX + (b.x || 0);
+    const dynamicYOffset = rowYOffsets.get(b.y || 0);
+    let blockY = currentY - dynamicYOffset;
+
+    for (let rowIdx = 0; rowIdx < b.rows.length; rowIdx++) {
+      const r = b.rows[rowIdx];
+      const h = rowHeights[rowIdx];
+      const yBottom = blockY - h;
+
+      if (r.type === 'columns' && r.columns) {
+        let colX = blockX;
+        for (let i = 0; i < r.columns.length; i++) {
+          const col = r.columns[i];
+          const colWidth = col.width;
+          
+          stroke(colX, blockY, colX + colWidth, blockY);
+          stroke(colX, yBottom, colX + colWidth, yBottom);
+          stroke(colX, yBottom, colX, blockY);
+          if (i === r.columns.length - 1) {
+            stroke(colX + colWidth, yBottom, colX + colWidth, blockY);
+          }
+          
+          const textContent = getTextContent(col, payload);
+          if (textContent) {
+            const textSize = col.text_size || 9;
+            drawMultilineText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align);
+          }
+          
+          colX += colWidth;
+        }
+      } else {
+        drawCellBorders(stroke, r, blockX, blockY, b.width, h);
+
+        const textContent = getTextContent(r, payload);
+        if (textContent && r.type !== 'image') {
+          const textSize = r.text_size || 9;
+          drawMultilineText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align);
+        }
+      }
+
+      blockY = yBottom;
+    }
+  }
+
+  const maxBlockHeight = cumulativeOffset - BLOCK_SPACING;
+  currentY -= maxBlockHeight;
+
+  return currentY;
+}
+
+// ==================================================================================
+// RENDERING FUNCTIONS - Revision Table
+// ==================================================================================
+
+function renderRevisionTable(context) {
+  const { page, font, stroke, payload, leftMargin, usableWidth } = context;
+  let { currentY, rev } = context;
+  
+  if (!rev) return currentY;
+  
+  currentY -= (rev.margin_top || 0);
+  const tableX = leftMargin;
+  const titleH = rev.title.height;
+  const headerH = rev.header.height;
+  const minRowH = rev.row_template.height;
+  
+  if (payload.revision_history && payload.revision_history.length > 0) {
+    const estimatedRevTableHeight = titleH + headerH + (minRowH * payload.revision_history.length * 2);
+    context.checkPageOverflow(estimatedRevTableHeight);
+  }
+
+  // Title
+  strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+  if (rev.title.text) {
+    drawAlignedText(page, font, rev.title.text, tableX, currentY - titleH, usableWidth, titleH, rev.title.text_size, 'center');
+  }
+  currentY -= titleH;
+
+  // Header
+  strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+  let accX = tableX;
+  for (const col of rev.header.columns) {
+    if (col.text) {
+      drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, rev.header.text_size, 'center');
+    }
+    accX += col.width;
+    if (round2(accX) < round2(tableX + usableWidth)) {
+      stroke(accX, currentY - headerH, accX, currentY);
+    }
+  }
+  currentY -= headerH;
+
+  // Dynamic rows
+  if (payload.revision_history && payload.revision_history.length > 0) {
+    const rowHeights = [];
+    for (let i = 0; i < payload.revision_history.length; i++) {
+      const revisionEntry = payload.revision_history[i];
+      let maxHeight = minRowH;
+      
+      for (let j = 0; j < rev.row_template.cells.length; j++) {
+        const cellTemplate = rev.row_template.cells[j];
+        const colWidth = rev.header.columns[j].width;
+        const value = resolveTemplate(cellTemplate.source, revisionEntry);
+        
+        if (value) {
+          const cellHeight = calculateTextHeight(font, value, colWidth, rev.row_template.text_size);
+          maxHeight = Math.max(maxHeight, cellHeight);
+        }
+      }
+      
+      rowHeights.push(maxHeight);
+    }
+    
+    const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
+    strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
+    
+    let rowY = currentY;
+    for (let i = 0; i < payload.revision_history.length; i++) {
+      const rowH = rowHeights[i];
+      
+      if (i > 0) {
+        stroke(tableX, rowY, tableX + usableWidth, rowY);
+      }
+      
+      let cellX = tableX;
+      const revisionEntry = payload.revision_history[i];
+      
+      for (let j = 0; j < rev.row_template.cells.length; j++) {
+        const cellTemplate = rev.row_template.cells[j];
+        const colWidth = rev.header.columns[j].width;
+        const value = resolveTemplate(cellTemplate.source, revisionEntry);
+        
+        if (value) {
+          drawMultilineText(page, font, value, cellX, rowY - rowH, colWidth, rowH, rev.row_template.text_size, rev.row_template.align);
+        }
+        
+        cellX += colWidth;
+      }
+      
+      rowY -= rowH;
+    }
+    
+    accX = tableX;
+    for (const col of rev.header.columns) {
+      accX += col.width;
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - dataH, accX, currentY);
+      }
+    }
+    currentY -= dataH;
+  } else {
+    strokeRect(stroke, tableX, currentY - minRowH, usableWidth, minRowH);
+    accX = tableX;
+    for (const col of rev.header.columns) {
+      accX += col.width;
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - minRowH, accX, currentY);
+      }
+    }
+    currentY -= minRowH;
+  }
+
+  return currentY;
+}
+
+// ==================================================================================
+// PAGE MANAGEMENT - Headers & Footers
+// ==================================================================================
+
+function createPageHeaderRenderer(config) {
+  const { pageHeight, topMargin, font, payload } = config;
+  
+  return function renderHeader(targetPage) {
+    const headerY = pageHeight - topMargin + 30;
+    const headerText = `${resolveTemplate('{{document.code}}', payload)} - ${resolveTemplate('{{document.title}}', payload)} - Page continuation`;
+    const headerSize = 9;
+    const headerWidth = font.widthOfTextAtSize(headerText, headerSize);
+    const headerX = (config.pageWidth - headerWidth) / 2;
+    
+    targetPage.drawText(headerText, {
+      x: headerX,
+      y: headerY,
+      size: headerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+  };
+}
+
+function createPageFooterRenderer(config) {
+  const { pageWidth, leftMargin, rightMargin, font, payload, headerFooter } = config;
+  
+  return function renderFooter(targetPage) {
+    const footer = headerFooter.footer;
+    
+    if (footer.separator_line && footer.separator_line.enabled) {
+      const lineY = footer.separator_line.y_position;
+      const lineX1 = leftMargin + footer.separator_line.margin_left;
+      const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
+      
+      targetPage.drawLine({
+        start: { x: lineX1, y: lineY },
+        end: { x: lineX2, y: lineY },
+        color: rgb(0, 0, 1),
+        thickness: footer.separator_line.thickness
+      });
+    }
+    
+    const footerY = footer.y_position;
+    const footerText = `${resolveTemplate('{{document.code}}', payload)} | ${resolveTemplate('{{document.title}}', payload)} | ${resolveTemplate('{{document.semanticVersion}}', payload)}`;
+    const footerSize = 8;
+    const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
+    const footerX = (pageWidth - footerWidth) / 2;
+    
+    targetPage.drawText(footerText, {
+      x: footerX,
+      y: footerY,
+      size: footerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+  };
+}
+
+// ==================================================================================
+// MAIN PDF GENERATION
+// ==================================================================================
+
 async function generateGoldenPdf(payloadFile) {
   const payloadPath = path.join(__dirname, 'qa', 'payloads', payloadFile);
   const outputFile = payloadFile.replace('.json', '.pdf');
   const outputPath = path.join(__dirname, 'qa', 'golden', outputFile);
 
-  console.log(`${colors.blue}Processing:${colors.reset} ${payloadFile}`);
-
   try {
-    // Load payload
-    const payloadContent = fs.readFileSync(payloadPath, 'utf8');
-    const payload = JSON.parse(payloadContent);
-
-    // Load design files
-    const headerFooterPath = path.join(__dirname, 'HeaderFooter.json');
-    const manifestPath = path.join(__dirname, 'Manifest.json');
-    const headerFooter = JSON.parse(fs.readFileSync(headerFooterPath, 'utf8'));
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
+    const headerFooter = JSON.parse(fs.readFileSync(path.join(__dirname, 'HeaderFooter.json'), 'utf8'));
+    const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'Manifest.json'), 'utf8'));
 
     const { width: pageWidth, height: pageHeight, margins } = headerFooter.page;
     const { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin } = margins;
     const usableWidth = pageWidth - leftMargin - rightMargin;
-    
-    // Calculate minimum Y position - content must stop before footer area
-    // Footer separator is at 84pt, so add padding above it
-    const footerTopY = headerFooter.footer.separator_line.y_position + 20; // 84 + 20 = 104pt
+    const footerTopY = headerFooter.footer.separator_line.y_position + 20;
     const minY = footerTopY;
 
     const pdfDoc = await PDFDocument.create();
@@ -269,648 +819,105 @@ async function generateGoldenPdf(payloadFile) {
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
-    // Load fonts
-    const fontPath = path.join(__dirname, headerFooter.fonts.regular);
-    const fontBytes = fs.readFileSync(fontPath);
+    const fontBytes = fs.readFileSync(path.join(__dirname, headerFooter.fonts.regular));
     const font = await pdfDoc.embedFont(fontBytes);
     
-    // Helper function to check and handle page overflow
+    const renderHeader = createPageHeaderRenderer({ pageHeight, topMargin, pageWidth, font, payload });
+    const renderFooter = createPageFooterRenderer({ pageWidth, leftMargin, rightMargin, font, payload, headerFooter });
+    
     function checkPageOverflow(requiredHeight) {
       if (currentY - requiredHeight < minY) {
-        // Render footer on current page before creating new one
         renderFooter(page);
-        
-        // Add new page
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
-        
-        // Render header on new page
         renderHeader(page);
-        
-        // Reset currentY to below the header
-        currentY = pageHeight - topMargin - 50; // Leave space for simple header
-        return true; // Page was added
+        currentY = pageHeight - topMargin - 50;
+        return true;
       }
-      return false; // No overflow
-    }
-    
-    // Helper function to render header on continuation pages
-    function renderHeader(targetPage) {
-      const headerY = pageHeight - topMargin + 30;
-      const headerText = `${resolveTemplate('{{document.code}}', payload)} - ${resolveTemplate('{{document.title}}', payload)} - Page continuation`;
-      const headerSize = 9;
-      const headerWidth = font.widthOfTextAtSize(headerText, headerSize);
-      const headerX = (pageWidth - headerWidth) / 2;
-      
-      targetPage.drawText(headerText, {
-        x: headerX,
-        y: headerY,
-        size: headerSize,
-        font: font,
-        color: rgb(0.3, 0.3, 0.3)
-      });
-    }
-    
-    // Helper function to render footer
-    function renderFooter(targetPage) {
-      const footer = headerFooter.footer;
-      
-      // Footer separator line - absolute position, ignores bottom margin
-      if (footer.separator_line && footer.separator_line.enabled) {
-        const lineY = footer.separator_line.y_position;
-        const lineX1 = leftMargin + footer.separator_line.margin_left;
-        const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
-        
-        targetPage.drawLine({
-          start: { x: lineX1, y: lineY },
-          end: { x: lineX2, y: lineY },
-          color: rgb(0, 0, 1),
-          thickness: footer.separator_line.thickness
-        });
-      }
-      
-      // Footer text - absolute position from footer.y_position, ignores bottom margin
-      const footerY = footer.y_position;
-      const footerText = `${resolveTemplate('{{document.code}}', payload)} | ${resolveTemplate('{{document.title}}', payload)} | ${resolveTemplate('{{document.semanticVersion}}', payload)}`;
-      const footerSize = 8;
-      const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
-      const footerX = (pageWidth - footerWidth) / 2;
-      
-      targetPage.drawText(footerText, {
-        x: footerX,
-        y: footerY,
-        size: footerSize,
-        font: font,
-        color: rgb(0.3, 0.3, 0.3)
-      });
+      return false;
     }
 
-    console.log(`  ${colors.cyan}•${colors.reset} Page size: ${pageWidth}×${pageHeight} points`);
-
-    // ---------------- COVER HEADER WITH DYNAMIC HEIGHTS ----------------
     let currentY = headerFooter.header.y_position + headerFooter.header.height;
     
-    for (const row of headerFooter.header.rows) {
-      // Calculate row height - if "auto", sum heights from container column
-      let rowHeight = row.height;
-      if (rowHeight === "auto") {
-        const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
-        if (containerCol) {
-          rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
-        }
-      }
-      
-      // Calculate dynamic height based on content
-      let calculatedHeight = rowHeight;
-      for (const col of row.columns) {
-        if (col.type === 'container' && col.rows) {
-          // For containers, sum up the dynamic heights of all sub-rows
-          let containerTotalHeight = 0;
-          for (const subRow of col.rows) {
-            let subRowHeight = subRow.height;
-            
-            if (subRow.type === 'columns' && subRow.columns) {
-              for (const subCol of subRow.columns) {
-                const textContent = getTextContent(subCol, payload);
-                if (textContent && subCol.type !== 'image') {
-                  const textSize = subCol.text_size || 9;
-                  const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, subRow.height);
-                  subRowHeight = Math.max(subRowHeight, cellHeight);
-                }
-              }
-            } else {
-              const textContent = getTextContent(subRow, payload);
-              if (textContent && subRow.type !== 'image') {
-                const textSize = subRow.text_size || 9;
-                const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, subRow.height);
-                subRowHeight = Math.max(subRowHeight, cellHeight);
-              }
-            }
-            
-            containerTotalHeight += subRowHeight;
-          }
-          calculatedHeight = Math.max(calculatedHeight, containerTotalHeight);
-        } else if (col.type === 'columns' && col.columns) {
-          for (const subCol of col.columns) {
-            const textContent = getTextContent(subCol, payload);
-            if (textContent && subCol.type !== 'image') {
-              const textSize = subCol.text_size || 9;
-              const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, rowHeight);
-              calculatedHeight = Math.max(calculatedHeight, cellHeight);
-            }
-          }
-        } else if (col.type !== 'image') {
-          const textContent = getTextContent(col, payload);
-          if (textContent) {
-            const textSize = col.text_size || 9;
-            const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, rowHeight);
-            calculatedHeight = Math.max(calculatedHeight, cellHeight);
-          }
-        }
-      }
-      
-      rowHeight = calculatedHeight;
-      let currentX = leftMargin;
-      
-      for (const col of row.columns) {
-        const colWidth = col.width;
-        
-        // Handle nested containers
-        if (col.type === 'container' && col.rows) {
-          let containerY = currentY;
-          
-          // Calculate dynamic heights for each sub-row in the container
-          const subRowHeights = [];
-          for (const subRow of col.rows) {
-            let subHeight = subRow.height;
-            
-            if (subRow.type === 'columns' && subRow.columns) {
-              // Check all columns in this sub-row
-              for (const subCol of subRow.columns) {
-                const textContent = getTextContent(subCol, payload);
-                if (textContent && subCol.type !== 'image') {
-                  const textSize = subCol.text_size || 9;
-                  const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, subRow.height);
-                  subHeight = Math.max(subHeight, cellHeight);
-                }
-              }
-            } else {
-              const textContent = getTextContent(subRow, payload);
-              if (textContent && subRow.type !== 'image') {
-                const textSize = subRow.text_size || 9;
-                const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize, 4, 1.2, subRow.height);
-                subHeight = Math.max(subHeight, cellHeight);
-              }
-            }
-            
-            subRowHeights.push(subHeight);
-          }
-          
-          // Render sub-rows with dynamic heights
-          for (let i = 0; i < col.rows.length; i++) {
-            const subRow = col.rows[i];
-            const subHeight = subRowHeights[i];
-            
-            if (subRow.type === 'columns' && subRow.columns) {
-              let subX = currentX;
-              for (const subCol of subRow.columns) {
-                drawCellBorders(stroke, subCol, subX, containerY, subCol.width, subHeight);
-                
-                const textContent = getTextContent(subCol, payload);
-                if (textContent && subCol.type !== 'image') {
-                  const textSize = subCol.text_size || 9;
-                  drawMultilineText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align, 4, 1.2);
-                }
-                
-                subX += subCol.width;
-              }
-            } else {
-              drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
-              
-              const textContent = getTextContent(subRow, payload);
-              if (textContent && subRow.type !== 'image') {
-                const textSize = subRow.text_size || 9;
-                drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align, 4, 1.2);
-              }
-            }
-            
-            containerY -= subHeight;
-          }
-        } else if (col.type === 'columns' && col.columns) {
-          let subX = currentX;
-          for (const subCol of col.columns) {
-            drawCellBorders(stroke, subCol, subX, currentY, subCol.width, rowHeight);
-            
-            const textContent = getTextContent(subCol, payload);
-            if (textContent && subCol.type !== 'image') {
-              const textSize = subCol.text_size || 9;
-              drawMultilineText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align, 4, 1.2);
-            }
-            
-            subX += subCol.width;
-          }
-        } else {
-          // Regular column (including images)
-          // For image columns, use the full row height to match container height
-          drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
-          
-          const textContent = getTextContent(col, payload);
-          if (textContent && col.type !== 'image') {
-            const textSize = col.text_size || 9;
-            drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
-          }
-          // Note: Images will be rendered with rowHeight, ensuring they match the container height
-        }
-        
-        currentX += colWidth;
-      }
-      
-      currentY -= rowHeight;
-    }
+    const context = {
+      page, font, stroke, payload, headerFooter, manifest,
+      pageWidth, pageHeight, leftMargin, rightMargin, usableWidth,
+      topMargin, bottomMargin, minY,
+      checkPageOverflow,
+      currentY
+    };
 
-    console.log(`  ${colors.green}✓${colors.reset} Rendered header`);
-
-    // ---------------- CONTENT TABLES ----------------
+    // Render sections
+    context.currentY = renderCoverHeader(context);
+    
     const tables = manifest.content?.tables || [];
+    context.firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
+    context.signing = tables.find(t => t.id === 'signing_container');
+    context.rev = tables.find(t => t.id === 'control_de_cambios');
+    
+    currentY = context.currentY;
+    context.currentY = renderApprovalTable({ ...context, currentY });
+    currentY = context.currentY;
+    context.currentY = renderSignatureBlocks({ ...context, currentY });
+    currentY = context.currentY;
+    context.currentY = renderRevisionTable({ ...context, currentY });
 
-    // == FIRMAS Y APROBACIONES Table ==
-    const firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
-    if (firmas) {
-      currentY -= (firmas.margin_top || 0);
-      const tableX = leftMargin;
-      const titleH = firmas.title.height;
-      const headerH = firmas.header.height;
-      const minRowH = firmas.rows_config.height;
-      
-      // Pre-calculate total table height to check for overflow
-      const estimatedTableHeight = titleH + headerH + (minRowH * firmas.rows.length * 1.5); // Estimate with 1.5x multiplier
-      checkPageOverflow(estimatedTableHeight);
-
-      // Title
-      strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
-      if (firmas.title.text) {
-        drawAlignedText(page, font, firmas.title.text, tableX, currentY - titleH, usableWidth, titleH, firmas.title.text_size, 'center');
-      }
-      currentY -= titleH;
-
-      // Header
-      strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
-      let accX = tableX;
-      for (const col of firmas.header.columns) {
-        if (col.text) {
-          drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, firmas.header.text_size, 'center');
-        }
-        accX += col.width;
-        if (round2(accX) < round2(tableX + usableWidth)) {
-          stroke(accX, currentY - headerH, accX, currentY);
-        }
-      }
-      currentY -= headerH;
-
-      // Rows with dynamic heights
-      const rowHeights = [];
-      for (let i = 0; i < firmas.rows.length; i++) {
-        let maxHeight = minRowH;
-        
-        for (let j = 0; j < firmas.rows[i].cells.length; j++) {
-          const cell = firmas.rows[i].cells[j];
-          const colWidth = firmas.header.columns[j].width;
-          const textContent = getTextContent(cell, payload);
-          
-          if (textContent) {
-            const cellHeight = calculateTextHeight(font, textContent, colWidth, firmas.rows_config.text_size, 4, 1.2, minRowH);
-            maxHeight = Math.max(maxHeight, cellHeight);
-          }
-        }
-        
-        rowHeights.push(maxHeight);
-      }
-      
-      const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
-      strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
-      
-      let rowY = currentY;
-      for (let i = 0; i < firmas.rows.length; i++) {
-        const rowH = rowHeights[i];
-        
-        if (i > 0) {
-          stroke(tableX, rowY, tableX + usableWidth, rowY);
-        }
-        
-        let cellX = tableX;
-        for (let j = 0; j < firmas.rows[i].cells.length; j++) {
-          const cell = firmas.rows[i].cells[j];
-          const colWidth = firmas.header.columns[j].width;
-          const textContent = getTextContent(cell, payload);
-          if (textContent) {
-            drawMultilineText(page, font, textContent, cellX, rowY - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align, 4, 1.2);
-          }
-          cellX += colWidth;
-        }
-        
-        rowY -= rowH;
-      }
-      
-      accX = tableX;
-      for (const col of firmas.header.columns) {
-        accX += col.width;
-        if (round2(accX) < round2(tableX + usableWidth)) {
-          stroke(accX, currentY - dataH, accX, currentY);
-        }
-      }
-      currentY -= dataH;
-
-      console.log(`  ${colors.green}✓${colors.reset} Rendered ${firmas.rows.length} rows in approval table (dynamic heights)`);
-    }
-
-    // == SIGNING CONTAINER WITH DYNAMIC HEIGHTS ==
-    const signing = tables.find(t => t.id === 'signing_container');
-    if (signing) {
-      currentY -= (signing.margin_top || 0);
-      const baseX = leftMargin;
-      
-      // Estimate signing container height for overflow check
-      const estimatedSigningHeight = 200; // Approximate height for signature blocks
-      checkPageOverflow(estimatedSigningHeight);
-
-      // Calculate dynamic heights for all blocks
-      const blockDynamicHeights = [];
-      
-      for (const b of signing.blocks) {
-        const rowHeights = [];
-        
-        for (const r of b.rows) {
-          let rowHeight = r.height;
-          
-          if (r.type === 'columns' && r.columns) {
-            // Check all columns for text that might need wrapping
-            for (const col of r.columns) {
-              const textContent = getTextContent(col, payload);
-              if (textContent && col.type !== 'image') {
-                const textSize = col.text_size || 9;
-                const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, r.height);
-                rowHeight = Math.max(rowHeight, cellHeight);
-              }
-            }
-          } else if (r.type !== 'image') {
-            const textContent = getTextContent(r, payload);
-            if (textContent) {
-              const textSize = r.text_size || 9;
-              const cellHeight = calculateTextHeight(font, textContent, b.width, textSize, 4, 1.2, r.height);
-              rowHeight = Math.max(rowHeight, cellHeight);
-            }
-          }
-          
-          rowHeights.push(rowHeight);
-        }
-        
-        blockDynamicHeights.push(rowHeights);
-      }
-
-      // Group blocks by their y position (row of blocks)
-      const blockRows = new Map();
-      signing.blocks.forEach((b, idx) => {
-        const yPos = b.y || 0;
-        if (!blockRows.has(yPos)) {
-          blockRows.set(yPos, []);
-        }
-        blockRows.get(yPos).push({ block: b, idx: idx, heights: blockDynamicHeights[idx] });
-      });
-      
-      // Sort rows by y position
-      const sortedYPositions = Array.from(blockRows.keys()).sort((a, b) => a - b);
-      
-      // Calculate dynamic y offset for each row of blocks
-      const rowYOffsets = new Map();
-      let cumulativeOffset = 0;
-      const blockSpacing = 30; // Spacing between rows of blocks
-      
-      for (const yPos of sortedYPositions) {
-        rowYOffsets.set(yPos, cumulativeOffset);
-        
-        // Calculate max height for this row of blocks
-        const blocksInRow = blockRows.get(yPos);
-        const maxHeightInRow = Math.max(...blocksInRow.map(item => 
-          item.heights.reduce((sum, h) => sum + h, 0)
-        ));
-        
-        cumulativeOffset += maxHeightInRow + blockSpacing;
-      }
-
-      // Render blocks with dynamic positioning
-      for (let blockIdx = 0; blockIdx < signing.blocks.length; blockIdx++) {
-        const b = signing.blocks[blockIdx];
-        const rowHeights = blockDynamicHeights[blockIdx];
-        const blockX = baseX + (b.x || 0);
-        const dynamicYOffset = rowYOffsets.get(b.y || 0);
-        let blockY = currentY - dynamicYOffset;
-
-        for (let rowIdx = 0; rowIdx < b.rows.length; rowIdx++) {
-          const r = b.rows[rowIdx];
-          const h = rowHeights[rowIdx];
-          const yBottom = blockY - h;
-
-          if (r.type === 'columns' && r.columns) {
-            let colX = blockX;
-            for (let i = 0; i < r.columns.length; i++) {
-              const col = r.columns[i];
-              const colWidth = col.width;
-              
-              stroke(colX, blockY, colX + colWidth, blockY);
-              stroke(colX, yBottom, colX + colWidth, yBottom);
-              stroke(colX, yBottom, colX, blockY);
-              if (i === r.columns.length - 1) {
-                stroke(colX + colWidth, yBottom, colX + colWidth, blockY);
-              }
-              
-              const textContent = getTextContent(col, payload);
-              if (textContent) {
-                const textSize = col.text_size || 9;
-                drawMultilineText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align, 4, 1.2);
-              }
-              
-              colX += colWidth;
-            }
-          } else {
-            drawCellBorders(stroke, r, blockX, blockY, b.width, h);
-
-            const textContent = getTextContent(r, payload);
-            if (textContent && r.type !== 'image') {
-              const textSize = r.text_size || 9;
-              drawMultilineText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align, 4, 1.2);
-            }
-          }
-
-          blockY = yBottom;
-        }
-      }
-
-      // Calculate max block height using dynamic positioning
-      const maxBlockHeight = cumulativeOffset - blockSpacing; // Remove last spacing
-      currentY -= maxBlockHeight;
-
-      console.log(`  ${colors.green}✓${colors.reset} Rendered ${signing.blocks.length} signature blocks (dynamic heights)`);
-    }
-
-    // == CONTROL DE CAMBIOS ==
-    const rev = tables.find(t => t.id === 'control_de_cambios');
-    if (rev) {
-      currentY -= (rev.margin_top || 0);
-      const tableX = leftMargin;
-      const titleH = rev.title.height;
-      const headerH = rev.header.height;
-      const minRowH = rev.row_template.height;
-      
-      // Pre-calculate revision table height to check for overflow
-      if (payload.revision_history && payload.revision_history.length > 0) {
-        const estimatedRevTableHeight = titleH + headerH + (minRowH * payload.revision_history.length * 2); // Estimate with 2x multiplier for long descriptions
-        checkPageOverflow(estimatedRevTableHeight);
-      }
-
-      // Title
-      strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
-      if (rev.title.text) {
-        drawAlignedText(page, font, rev.title.text, tableX, currentY - titleH, usableWidth, titleH, rev.title.text_size, 'center');
-      }
-      currentY -= titleH;
-
-      // Header
-      strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
-      let accX = tableX;
-      for (const col of rev.header.columns) {
-        if (col.text) {
-          drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, rev.header.text_size, 'center');
-        }
-        accX += col.width;
-        if (round2(accX) < round2(tableX + usableWidth)) {
-          stroke(accX, currentY - headerH, accX, currentY);
-        }
-      }
-      currentY -= headerH;
-
-      // Dynamic rows from payload with dynamic heights
-      if (payload.revision_history && payload.revision_history.length > 0) {
-        // Calculate row heights based on content
-        const rowHeights = [];
-        for (let i = 0; i < payload.revision_history.length; i++) {
-          const revisionEntry = payload.revision_history[i];
-          let maxHeight = minRowH;
-          
-          // Check each cell to find the tallest content
-          for (let j = 0; j < rev.row_template.cells.length; j++) {
-            const cellTemplate = rev.row_template.cells[j];
-            const colWidth = rev.header.columns[j].width;
-            const value = resolveTemplate(cellTemplate.source, revisionEntry);
-            
-            if (value) {
-              const cellHeight = calculateTextHeight(font, value, colWidth, rev.row_template.text_size, 4, 1.2, minRowH);
-              maxHeight = Math.max(maxHeight, cellHeight);
-            }
-          }
-          
-          rowHeights.push(maxHeight);
-        }
-        
-        const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
-        strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
-        
-        let rowY = currentY;
-        for (let i = 0; i < payload.revision_history.length; i++) {
-          const rowH = rowHeights[i];
-          
-          if (i > 0) {
-            stroke(tableX, rowY, tableX + usableWidth, rowY);
-          }
-          
-          let cellX = tableX;
-          const revisionEntry = payload.revision_history[i];
-          
-          for (let j = 0; j < rev.row_template.cells.length; j++) {
-            const cellTemplate = rev.row_template.cells[j];
-            const colWidth = rev.header.columns[j].width;
-            const value = resolveTemplate(cellTemplate.source, revisionEntry);
-            
-            if (value) {
-              // Use multiline text for cells that need wrapping
-              drawMultilineText(page, font, value, cellX, rowY - rowH, colWidth, rowH, rev.row_template.text_size, rev.row_template.align, 4, 1.2);
-            }
-            
-            cellX += colWidth;
-          }
-          
-          rowY -= rowH;
-        }
-        
-        // Draw vertical lines
-        accX = tableX;
-        for (const col of rev.header.columns) {
-          accX += col.width;
-          if (round2(accX) < round2(tableX + usableWidth)) {
-            stroke(accX, currentY - dataH, accX, currentY);
-          }
-        }
-        currentY -= dataH;
-
-        console.log(`  ${colors.green}✓${colors.reset} Rendered ${payload.revision_history.length} rows in revision table (dynamic heights)`);
-      } else {
-        // Draw one template row
-        strokeRect(stroke, tableX, currentY - minRowH, usableWidth, minRowH);
-        accX = tableX;
-        for (const col of rev.header.columns) {
-          accX += col.width;
-          if (round2(accX) < round2(tableX + usableWidth)) {
-            stroke(accX, currentY - minRowH, accX, currentY);
-          }
-        }
-        currentY -= minRowH;
-        console.log(`  ${colors.yellow}ℹ${colors.reset} No revision history data, rendered empty template row`);
-      }
-    }
-
-    // ---------------- FOOTER ----------------
-    // Render footer on all pages
+    // Render footers on all pages
     const totalPages = pdfDoc.getPageCount();
     for (let i = 0; i < totalPages; i++) {
-      const currentPage = pdfDoc.getPages()[i];
-      renderFooter(currentPage);
+      renderFooter(pdfDoc.getPages()[i]);
     }
 
-    console.log(`  ${colors.green}✓${colors.reset} Rendered footer on ${totalPages} page(s)`);
-
-    // Save the PDF
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(outputPath, pdfBytes);
 
-    console.log(`  ${colors.green}✓${colors.reset} Saved: ${outputFile}\n`);
-
-    return true;
+    return { success: true, file: outputFile, pages: totalPages };
   } catch (error) {
-    console.log(`  ${colors.red}✗${colors.reset} Error: ${error.message}`);
-    console.log(`  ${colors.red}  ${colors.reset} ${error.stack}\n`);
-    return false;
+    return { success: false, file: outputFile, error: error.message };
   }
 }
 
-// Main execution
+// ==================================================================================
+// BATCH PROCESSING
+// ==================================================================================
+
 async function main() {
   const payloadsDir = path.join(__dirname, 'qa', 'payloads');
   const goldenDir = path.join(__dirname, 'qa', 'golden');
 
-  // Ensure golden directory exists
   if (!fs.existsSync(goldenDir)) {
     fs.mkdirSync(goldenDir, { recursive: true });
   }
 
-  // Get all payload files
   const payloadFiles = fs.readdirSync(payloadsDir).filter(f => f.endsWith('.json'));
+  const results = [];
 
-  console.log(`Found ${payloadFiles.length} test payload files\n`);
-
-  let successCount = 0;
-  let failureCount = 0;
-
-  // Process each payload
   for (const payloadFile of payloadFiles) {
-    const success = await generateGoldenPdf(payloadFile);
-    if (success) {
-      successCount++;
-    } else {
-      failureCount++;
-    }
+    const result = await generateGoldenPdf(payloadFile);
+    results.push(result);
   }
 
-  // Summary
-  console.log(`${colors.cyan}======================================${colors.reset}`);
-  console.log(`${colors.green}✓${colors.reset} Successfully generated: ${successCount}`);
+  const successCount = results.filter(r => r.success).length;
+  const failureCount = results.filter(r => !r.success).length;
+
+  console.log('='.repeat(60));
+  console.log('Golden PDF Generation Complete');
+  console.log('='.repeat(60));
+  console.log(`Total: ${results.length} | Success: ${successCount} | Failed: ${failureCount}`);
+  
   if (failureCount > 0) {
-    console.log(`${colors.red}✗${colors.reset} Failed: ${failureCount}`);
+    console.log('\nFailed files:');
+    results.filter(r => !r.success).forEach(r => {
+      console.log(`  - ${r.file}: ${r.error}`);
+    });
   }
-  console.log(`${colors.cyan}======================================${colors.reset}\n`);
+  
+  console.log('='.repeat(60) + '\n');
 
   process.exit(failureCount > 0 ? 1 : 0);
 }
 
 main().catch(error => {
-  console.error(`${colors.red}Fatal error:${colors.reset} ${error.message}`);
+  console.error('Fatal error:', error.message);
   process.exit(1);
 });
