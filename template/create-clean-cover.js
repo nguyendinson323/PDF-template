@@ -214,103 +214,21 @@ async function createCleanCover() {
   const fontBytes = fs.readFileSync(fontPath);
   const font = await pdfDoc.embedFont(fontBytes);
   
-  // Helper function to render full cover header
-  function renderFullCoverHeader(targetPage, targetStroke) {
-    let headerY = headerFooter.header.y_position + headerFooter.header.height;
-    
-    for (const row of headerFooter.header.rows) {
-      // Calculate row height - if "auto", sum heights from container column
-      let rowHeight = row.height;
-      if (rowHeight === "auto") {
-        // Find container column and sum its rows' heights
-        const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
-        if (containerCol) {
-          rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
-        }
-      }
-      let currentX = leftMargin;
-      
-      for (const col of row.columns) {
-        const colWidth = col.width;
-        
-        // Handle nested containers
-        if (col.type === 'container' && col.rows) {
-          let containerY = headerY;
-          const containerHeight = rowHeight;
-          
-          for (const subRow of col.rows) {
-            const subHeight = subRow.height;
-          
-            if (subRow.type === 'columns' && subRow.columns) {
-              let subX = currentX;
-              for (const subCol of subRow.columns) {
-                drawCellBorders(targetStroke, subCol, subX, containerY, subCol.width, subHeight);
-                
-                const textContent = getTextContent(subCol);
-                if (textContent && subCol.type !== 'image') {
-                  const textSize = subCol.text_size || 9;
-                  drawMultilineText(targetPage, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align, 4, 1.2);
-                }
-                
-                subX += subCol.width;
-              }
-            } else {
-              drawCellBorders(targetStroke, subRow, currentX, containerY, colWidth, subHeight);
-              
-              const textContent = getTextContent(subRow);
-              if (textContent && subRow.type !== 'image') {
-                const textSize = subRow.text_size || 9;
-                drawMultilineText(targetPage, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align, 4, 1.2);
-              }
-            }
-            
-            containerY -= subHeight;
-          }
-        } else if (col.type === 'columns' && col.columns) {
-          let subX = currentX;
-          for (const subCol of col.columns) {
-            drawCellBorders(targetStroke, subCol, subX, headerY, subCol.width, rowHeight);
-            
-            const textContent = getTextContent(subCol);
-            if (textContent && subCol.type !== 'image') {
-              const textSize = subCol.text_size || 9;
-              drawMultilineText(targetPage, font, textContent, subX, headerY - rowHeight, subCol.width, rowHeight, textSize, subCol.align, 4, 1.2);
-            }
-            
-            subX += subCol.width;
-          }
-        } else {
-          // Regular column (including images)
-          drawCellBorders(targetStroke, col, currentX, headerY, colWidth, rowHeight);
-          
-          const textContent = getTextContent(col);
-          if (textContent && col.type !== 'image') {
-            const textSize = col.text_size || 9;
-            drawMultilineText(targetPage, font, textContent, currentX, headerY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
-          }
-        }
-        
-        currentX += colWidth;
-      }
-      
-      headerY -= rowHeight;
-    }
-    
-    return headerY; // Return the Y position after header
-  }
-  
   // Helper function to check and handle page overflow
   function checkPageOverflow(requiredHeight) {
     if (currentY - requiredHeight < minY) {
-      // Don't render footer here - we'll render all footers at the end with correct page numbers
+      // Render footer on current page before creating new one
+      renderFooter(page);
       
       // Add new page
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
       
-      // Render full cover header on new page at the same position as first page
-      currentY = renderFullCoverHeader(page, stroke);
+      // Render header on new page
+      renderHeader(page);
       
+      // Reset currentY to below the header
+      currentY = pageHeight - topMargin - 50; // Leave space for simple header
       return true; // Page was added
     }
     return false; // No overflow
@@ -334,7 +252,7 @@ async function createCleanCover() {
   }
   
   // Helper function to render footer
-  function renderFooter(targetPage, pageNumber, totalPages) {
+  function renderFooter(targetPage) {
     const footer = headerFooter.footer;
     
     // Footer separator line - absolute position, ignores bottom margin
@@ -351,59 +269,24 @@ async function createCleanCover() {
       });
     }
     
-    // Build composite footer text from elements
-    const elements = footer.content?.elements || [];
-    let footerText = '';
-    
-    for (const elem of elements) {
-      if (elem.text) {
-        // Replace page number placeholders
-        let text = elem.text;
-        text = text.replace('{v}', pageNumber.toString());
-        text = text.replace('{h}', totalPages.toString());
-        footerText += text;
-      } else if (elem.source) {
-        const resolved = resolveTemplate(elem.source, payload);
-        if (resolved) {
-          // Truncate hash to last 8 characters for display
-          if (elem.source.includes('hashSha256') && resolved.length > 8) {
-            footerText += resolved.substring(resolved.length - 8);
-          } else {
-            footerText += resolved;
-          }
-        }
-      }
-    }
-    
-    // Draw footer text - absolute position from footer.y_position, ignores bottom margin
+    // Footer text - absolute position from footer.y_position, ignores bottom margin
     const footerY = footer.y_position;
-    const footerSize = footer.content?.text_size || 7;
-    const availableWidth = pageWidth - (footer.content?.margin_left || 0) - (footer.content?.margin_right || 0);
+    const footerText = 'Document Cover Template';
+    const footerSize = 8;
+    const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
+    const footerX = (pageWidth - footerWidth) / 2;
     
-    // Wrap text if needed
-    const lines = wrapText(font, footerText, availableWidth, footerSize, 0);
-    
-    let currentYFooter = footerY;
-    for (const line of lines) {
-      const lineWidth = font.widthOfTextAtSize(line, footerSize);
-      const footerX = footer.content?.align === 'center' 
-        ? (pageWidth - lineWidth) / 2 
-        : (footer.content?.margin_left || leftMargin);
-      
-      targetPage.drawText(line, {
-        x: footerX,
-        y: currentYFooter,
-        size: footerSize,
-        font: font,
-        color: rgb(0.3, 0.3, 0.3)
-      });
-      
-      currentYFooter -= footerSize * 1.2; // Line spacing
-    }
+    targetPage.drawText(footerText, {
+      x: footerX,
+      y: footerY,
+      size: footerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
   }
 
   // ---------------- COVER HEADER: margin-based dynamic layout ----------------
-  let currentY = renderFullCoverHeader(page, stroke);
+  let currentY = headerFooter.header.y_position + headerFooter.header.height;
   
   for (const row of headerFooter.header.rows) {
     // Calculate row height - if "auto", sum heights from container column
