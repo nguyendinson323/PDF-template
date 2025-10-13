@@ -318,8 +318,8 @@
       "thickness": 1
     },
     "content": {
-      "margin_left": 85,
-      "margin_right": 49,
+      "margin_left": 150,
+      "margin_right": 150,
       "text_size": 7,
       "align": "center",
       "text_wrap": "wrap",

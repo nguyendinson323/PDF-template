@@ -849,8 +849,7 @@ async function generateGoldenPdf(payloadFile) {
     
     // Centralized page overflow handler
     function addNewPage() {
-      const currentPageIndex = pdfDoc.getPageCount();
-      renderFooter(page, currentPageIndex, currentPageIndex); // Will update total later
+      // Don't render footer here - we'll render all footers at the end with correct page numbers
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
       renderHeader(page);
