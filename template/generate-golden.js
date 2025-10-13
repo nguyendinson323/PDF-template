@@ -402,18 +402,14 @@ function renderCoverHeader(context) {
 // ==================================================================================
 
 function renderApprovalTable(context) {
-  const { page, font, stroke, payload, leftMargin, usableWidth } = context;
-  let { currentY, firmas } = context;
-  
-  if (!firmas) return currentY;
+  const { page, font, stroke, payload, leftMargin, usableWidth, firmas } = context;
+  let { currentY } = context;
   
   currentY -= (firmas.margin_top || 0);
   const tableX = leftMargin;
   const titleH = firmas.title.height;
   const headerH = firmas.header.height;
   const minRowH = firmas.rows_config.height;
-  
-  context.checkPageOverflow(titleH + headerH + (minRowH * firmas.rows.length * 1.5));
 
   // Title
   strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -497,14 +493,10 @@ function renderApprovalTable(context) {
 // ==================================================================================
 
 function renderSignatureBlocks(context) {
-  const { page, font, stroke, payload, leftMargin } = context;
-  let { currentY, signing } = context;
-  
-  if (!signing) return currentY;
+  const { page, font, stroke, payload, leftMargin, signing } = context;
+  let { currentY } = context;
   
   currentY -= (signing.margin_top || 0);
-  context.checkPageOverflow(200);
-  
   const baseX = leftMargin;
   const blockDynamicHeights = [];
   
@@ -625,21 +617,14 @@ function renderSignatureBlocks(context) {
 // ==================================================================================
 
 function renderRevisionTable(context) {
-  const { page, font, stroke, payload, leftMargin, usableWidth } = context;
-  let { currentY, rev } = context;
-  
-  if (!rev) return currentY;
+  const { page, font, stroke, payload, leftMargin, usableWidth, rev } = context;
+  let { currentY } = context;
   
   currentY -= (rev.margin_top || 0);
   const tableX = leftMargin;
   const titleH = rev.title.height;
   const headerH = rev.header.height;
   const minRowH = rev.row_template.height;
-  
-  if (payload.revision_history && payload.revision_history.length > 0) {
-    const estimatedRevTableHeight = titleH + headerH + (minRowH * payload.revision_history.length * 2);
-    context.checkPageOverflow(estimatedRevTableHeight);
-  }
 
   // Title
   strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -825,42 +810,60 @@ async function generateGoldenPdf(payloadFile) {
     const renderHeader = createPageHeaderRenderer({ pageHeight, topMargin, pageWidth, font, payload });
     const renderFooter = createPageFooterRenderer({ pageWidth, leftMargin, rightMargin, font, payload, headerFooter });
     
-    function checkPageOverflow(requiredHeight) {
+    // Centralized page overflow handler
+    function addNewPage() {
+      renderFooter(page);
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+      renderHeader(page);
+      return pageHeight - topMargin - 50;
+    }
+    
+    function ensureSpace(requiredHeight) {
       if (currentY - requiredHeight < minY) {
-        renderFooter(page);
-        page = pdfDoc.addPage([pageWidth, pageHeight]);
-        stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
-        renderHeader(page);
-        currentY = pageHeight - topMargin - 50;
-        return true;
+        currentY = addNewPage();
       }
-      return false;
     }
 
     let currentY = headerFooter.header.y_position + headerFooter.header.height;
     
-    const context = {
+    // Build context for rendering functions
+    const buildContext = () => ({
       page, font, stroke, payload, headerFooter, manifest,
       pageWidth, pageHeight, leftMargin, rightMargin, usableWidth,
       topMargin, bottomMargin, minY,
-      checkPageOverflow,
       currentY
-    };
+    });
 
-    // Render sections
-    context.currentY = renderCoverHeader(context);
+    // Render cover header
+    currentY = renderCoverHeader(buildContext());
     
+    // Get table configurations
     const tables = manifest.content?.tables || [];
-    context.firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
-    context.signing = tables.find(t => t.id === 'signing_container');
-    context.rev = tables.find(t => t.id === 'control_de_cambios');
+    const firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
+    const signing = tables.find(t => t.id === 'signing_container');
+    const rev = tables.find(t => t.id === 'control_de_cambios');
     
-    currentY = context.currentY;
-    context.currentY = renderApprovalTable({ ...context, currentY });
-    currentY = context.currentY;
-    context.currentY = renderSignatureBlocks({ ...context, currentY });
-    currentY = context.currentY;
-    context.currentY = renderRevisionTable({ ...context, currentY });
+    // Render approval table with overflow check
+    if (firmas) {
+      ensureSpace(150); // Estimated minimum height for approval table
+      currentY = renderApprovalTable({ ...buildContext(), currentY, firmas });
+    }
+    
+    // Render signature blocks with overflow check
+    if (signing) {
+      ensureSpace(200); // Estimated minimum height for signature blocks
+      currentY = renderSignatureBlocks({ ...buildContext(), currentY, signing });
+    }
+    
+    // Render revision table with overflow check
+    if (rev) {
+      const estimatedHeight = payload.revision_history?.length 
+        ? rev.title.height + rev.header.height + (rev.row_template.height * payload.revision_history.length)
+        : 100;
+      ensureSpace(estimatedHeight);
+      currentY = renderRevisionTable({ ...buildContext(), currentY, rev });
+    }
 
     // Render footers on all pages
     const totalPages = pdfDoc.getPageCount();
