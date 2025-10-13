@@ -22,6 +22,9 @@ const BORDER_CONFIG = {
 const LINE_SPACING = 1.2;
 const TEXT_MARGIN = 4;
 const BLOCK_SPACING = 30;
+const LOGO_TEXT_SIZE = 15;
+const LOGO_MARGIN = 4;  // Margin around logo in points
+const QR_CODE_SIZE = 50; // QR code width and height in points (square)
 
 // ==================================================================================
 // UTILITY FUNCTIONS - Geometry & Stroke
@@ -30,13 +33,13 @@ const BLOCK_SPACING = 30;
 const round2 = n => Math.round(n * 100) / 100;
 
 // Generate QR code as PNG buffer
-async function generateQRCode(text, width = 200) {
+async function generateQRCode(text, width = 150) {
   try {
     const buffer = await QRCode.toBuffer(text, {
       errorCorrectionLevel: 'M',
       type: 'png',
       width: width,
-      margin: 1
+      margin: 0
     });
     return buffer;
   } catch (error) {
@@ -399,25 +402,59 @@ async function renderCoverHeader(context) {
         drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
         
         if (col.type === 'image' && col.source) {
-          // Generate QR code for image columns
-          const qrData = resolveTemplate(col.source, payload);
-          if (qrData) {
-            const qrBuffer = await generateQRCode(qrData, colWidth * 3);
-            if (qrBuffer) {
-              const qrImage = await pdfDoc.embedPng(qrBuffer);
-              const qrDims = qrImage.scale(colWidth / qrImage.width);
-              
-              // Center the QR code in the cell
-              const qrX = currentX + (colWidth - qrDims.width) / 2;
-              const qrY = currentY - rowHeight + (rowHeight - qrDims.height) / 2;
-              
-              page.drawImage(qrImage, {
-                x: qrX,
-                y: qrY,
-                width: qrDims.width,
-                height: qrDims.height
-              });
+          const imageData = resolveTemplate(col.source, payload);
+          
+          if (col.id === 'qr_code') {
+            // Generate QR code
+            if (imageData) {
+              const qrBuffer = await generateQRCode(imageData);
+              if (qrBuffer) {
+                const qrImage = await pdfDoc.embedPng(qrBuffer);
+                
+                // Center the QR code in the cell using centralized size
+                const qrX = currentX + (colWidth - QR_CODE_SIZE) / 2;
+                const qrY = currentY - (rowHeight + QR_CODE_SIZE) / 2;
+                
+                page.drawImage(qrImage, {
+                  x: qrX,
+                  y: qrY,
+                  width: QR_CODE_SIZE,
+                  height: QR_CODE_SIZE
+                });
+              }
             }
+          } else {
+            // For logo or other images, display "LOGO" text as placeholder
+            // (URL loading would require network access, which is not implemented yet)
+            // Calculate logo size based on cell size minus margin
+            const logoWidth = colWidth - (LOGO_MARGIN * 2);
+            const logoHeight = rowHeight - (LOGO_MARGIN * 2);
+            const logoX = currentX + LOGO_MARGIN;
+            const logoY = currentY - rowHeight + LOGO_MARGIN;
+            
+            // Draw border for logo placeholder
+            page.drawRectangle({
+              x: logoX,
+              y: logoY,
+              width: logoWidth,
+              height: logoHeight,
+              borderColor: rgb(0.7, 0.7, 0.7),
+              borderWidth: 1
+            });
+            
+            // Draw "LOGO" text in the center
+            const placeholderText = 'LOGO';
+            const textWidth = font.widthOfTextAtSize(placeholderText, LOGO_TEXT_SIZE);
+            const textX = logoX + (logoWidth - textWidth) / 2;
+            const textY = logoY + (logoHeight - LOGO_TEXT_SIZE) / 2;
+            
+            page.drawText(placeholderText, {
+              x: textX,
+              y: textY,
+              size: LOGO_TEXT_SIZE,
+              font: font,
+              color: rgb(0.5, 0.5, 0.5)
+            });
           }
         } else {
           const textContent = getTextContent(col, payload);
