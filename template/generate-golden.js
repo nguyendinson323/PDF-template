@@ -163,10 +163,13 @@ function drawMultilineText(page, font, text, x, yBottom, width, height, size, al
   const lines = wrapText(font, text, width, size, xMargin);
   const lineHeight = size * lineSpacing;
   
-  // Calculate starting Y position (top of text block)
+  // Calculate starting Y position for proper vertical centering
   const totalTextHeight = lines.length * lineHeight;
   const verticalPadding = (height - totalTextHeight) / 2;
-  let currentY = yBottom + height - verticalPadding - size * 0.7; // Adjust for baseline
+  
+  // Start from the center, accounting for baseline which is ~25% from bottom of em-box
+  // For the first line, we position it so the text block is centered
+  let currentY = yBottom + verticalPadding + (lines.length - 1) * lineHeight + size * 0.25;
   
   for (const line of lines) {
     const textWidth = font.widthOfTextAtSize(line, size);
@@ -285,18 +288,18 @@ async function generateGoldenPdf(payloadFile) {
       let calculatedHeight = rowHeight;
       for (const col of row.columns) {
         if (col.type === 'container' && col.rows) {
-          // For containers, check each sub-row
+          // For containers, sum up the dynamic heights of all sub-rows
+          let containerTotalHeight = 0;
           for (const subRow of col.rows) {
+            let subRowHeight = subRow.height;
+            
             if (subRow.type === 'columns' && subRow.columns) {
               for (const subCol of subRow.columns) {
                 const textContent = getTextContent(subCol, payload);
                 if (textContent && subCol.type !== 'image') {
                   const textSize = subCol.text_size || 9;
                   const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, subRow.height);
-                  const heightDiff = cellHeight - subRow.height;
-                  if (heightDiff > 0) {
-                    calculatedHeight = Math.max(calculatedHeight, rowHeight + heightDiff);
-                  }
+                  subRowHeight = Math.max(subRowHeight, cellHeight);
                 }
               }
             } else {
@@ -304,13 +307,13 @@ async function generateGoldenPdf(payloadFile) {
               if (textContent && subRow.type !== 'image') {
                 const textSize = subRow.text_size || 9;
                 const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, subRow.height);
-                const heightDiff = cellHeight - subRow.height;
-                if (heightDiff > 0) {
-                  calculatedHeight = Math.max(calculatedHeight, rowHeight + heightDiff);
-                }
+                subRowHeight = Math.max(subRowHeight, cellHeight);
               }
             }
+            
+            containerTotalHeight += subRowHeight;
           }
+          calculatedHeight = Math.max(calculatedHeight, containerTotalHeight);
         } else if (col.type === 'columns' && col.columns) {
           for (const subCol of col.columns) {
             const textContent = getTextContent(subCol, payload);
@@ -339,8 +342,38 @@ async function generateGoldenPdf(payloadFile) {
         // Handle nested containers
         if (col.type === 'container' && col.rows) {
           let containerY = currentY;
+          
+          // Calculate dynamic heights for each sub-row in the container
+          const subRowHeights = [];
           for (const subRow of col.rows) {
-            const subHeight = subRow.height;
+            let subHeight = subRow.height;
+            
+            if (subRow.type === 'columns' && subRow.columns) {
+              // Check all columns in this sub-row
+              for (const subCol of subRow.columns) {
+                const textContent = getTextContent(subCol, payload);
+                if (textContent && subCol.type !== 'image') {
+                  const textSize = subCol.text_size || 9;
+                  const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, subRow.height);
+                  subHeight = Math.max(subHeight, cellHeight);
+                }
+              }
+            } else {
+              const textContent = getTextContent(subRow, payload);
+              if (textContent && subRow.type !== 'image') {
+                const textSize = subRow.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize, 4, 1.2, subRow.height);
+                subHeight = Math.max(subHeight, cellHeight);
+              }
+            }
+            
+            subRowHeights.push(subHeight);
+          }
+          
+          // Render sub-rows with dynamic heights
+          for (let i = 0; i < col.rows.length; i++) {
+            const subRow = col.rows[i];
+            const subHeight = subRowHeights[i];
             
             if (subRow.type === 'columns' && subRow.columns) {
               let subX = currentX;
@@ -381,7 +414,8 @@ async function generateGoldenPdf(payloadFile) {
             subX += subCol.width;
           }
         } else {
-          // Regular column
+          // Regular column (including images)
+          // For image columns, use the full row height to match container height
           drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
           
           const textContent = getTextContent(col, payload);
@@ -389,6 +423,7 @@ async function generateGoldenPdf(payloadFile) {
             const textSize = col.text_size || 9;
             drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
           }
+          // Note: Images will be rendered with rowHeight, ensuring they match the container height
         }
         
         currentX += colWidth;

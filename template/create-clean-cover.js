@@ -111,10 +111,13 @@ function drawMultilineText(page, font, text, x, yBottom, width, height, size, al
   const lines = wrapText(font, text, width, size, xMargin);
   const lineHeight = size * lineSpacing;
   
-  // Calculate starting Y position (top of text block)
+  // Calculate starting Y position for proper vertical centering
   const totalTextHeight = lines.length * lineHeight;
   const verticalPadding = (height - totalTextHeight) / 2;
-  let currentY = yBottom + height - verticalPadding - size * 0.7; // Adjust for baseline
+  
+  // Start from the center, accounting for baseline which is ~25% from bottom of em-box
+  // For the first line, we position it so the text block is centered
+  let currentY = yBottom + verticalPadding + (lines.length - 1) * lineHeight + size * 0.25;
   
   for (const line of lines) {
     const textWidth = font.widthOfTextAtSize(line, size);
@@ -221,14 +224,17 @@ async function createCleanCover() {
     }
     let currentX = leftMargin;
     
-    for (const col of row.columns) {
-      const colWidth = col.width;
-      
-      // Handle nested containers
-      if (col.type === 'container' && col.rows) {
-        let containerY = currentY;
-        for (const subRow of col.rows) {
-          const subHeight = subRow.height;
+      for (const col of row.columns) {
+        const colWidth = col.width;
+        
+        // Handle nested containers
+        if (col.type === 'container' && col.rows) {
+          let containerY = currentY;
+          // Container uses the full calculated row height
+          const containerHeight = rowHeight;
+          
+          for (const subRow of col.rows) {
+            const subHeight = subRow.height;
           
             if (subRow.type === 'columns' && subRow.columns) {
             let subX = currentX;
@@ -272,7 +278,8 @@ async function createCleanCover() {
           subX += subCol.width;
         }
       } else {
-        // Regular column
+        // Regular column (including images)
+        // For image columns, use the full row height to match container height
         drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
         
         // Draw text if not a placeholder
@@ -281,6 +288,7 @@ async function createCleanCover() {
           const textSize = col.text_size || 9;
           drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
         }
+        // Note: Images will be rendered with rowHeight, ensuring they match the container height
       }
       
       currentX += colWidth;

@@ -39,7 +39,7 @@
                 "type": "text",
                 "text": "Título del documento:",
                 "height": 12,
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -61,7 +61,7 @@
                     "type": "text",
                     "text": "Código:",
                     "width": 44,
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left",
                     "border_right": false
                   },
@@ -70,7 +70,7 @@
                     "type": "text",
                     "source": "{{document.code}}",
                     "width": 263,
-                    "text_size": 11,
+                    "text_size": 9,
                     "align": "center",
                     "border_left": false
                   }
@@ -95,7 +95,7 @@
             "type": "text",
             "text": "Área:",
             "width": 49,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -104,7 +104,7 @@
             "type": "text",
             "source": "{{context.areaCode}}",
             "width": 34,
-            "text_size": 9,
+            "text_size": 7,
             "align": "center",
             "border_left": false,
             "border_right": false
@@ -114,7 +114,7 @@
             "type": "text",
             "source": "{{context.areaName}}",
             "width": 250,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -124,7 +124,7 @@
             "type": "text",
             "text": "Classification:",
             "width": 71,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -133,7 +133,7 @@
             "type": "text",
             "source": "{{context.classificationName}}",
             "width": 66,
-            "text_size": 9,
+            "text_size": 7,
             "align": "right",
             "border_left": false
           }
@@ -147,7 +147,7 @@
             "type": "text",
             "text": "Criticidad:",
             "width": 49,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -156,7 +156,7 @@
             "type": "text",
             "source": "{{context.criticalityCode}}",
             "width": 34,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -166,7 +166,7 @@
             "type": "text",
             "source": "{{context.criticalityName}}",
             "width": 58,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false
           },
@@ -175,7 +175,7 @@
             "type": "text",
             "text": "Versión:",
             "width": 42,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -184,7 +184,7 @@
             "type": "text",
             "source": "{{document.semanticVersion}}",
             "width": 57,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -194,7 +194,7 @@
             "type": "text",
             "source": "{{context.destinationPhase}}",
             "width": 93,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false
           },
@@ -203,7 +203,7 @@
             "type": "text",
             "text": "Fecha Pub:",
             "width": 71,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -212,7 +212,7 @@
             "type": "text",
             "source": "{{document.publicationDate}}",
             "width": 66,
-            "text_size": 9,
+            "text_size": 7,
             "align": "right",
             "border_left": false
           }
@@ -226,7 +226,7 @@
             "type": "text",
             "text": "Tipo:",
             "width": 49,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -235,7 +235,7 @@
             "type": "text",
             "source": "{{context.typeCode}}",
             "width": 34,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -245,7 +245,7 @@
             "type": "text",
             "source": "{{context.typeName}}",
             "width": 58,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false
           },
@@ -254,7 +254,7 @@
             "type": "text",
             "text": "Etapa:",
             "width": 42,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_right": false
           },
@@ -263,7 +263,7 @@
             "type": "text",
             "source": "{{context.currentPhase}}",
             "width": 57,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -273,7 +273,7 @@
             "type": "text",
             "source": "{{context.statuscurrentPhase}}",
             "width": 59,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false,
             "border_right": false
@@ -283,7 +283,7 @@
             "type": "text",
             "source": "{{context.correlativocurrentPhase}}",
             "width": 34,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left",
             "border_left": false
           },
@@ -292,7 +292,7 @@
             "type": "text",
             "text": "Estado:",
             "width": 71,
-            "text_size": 9,
+            "text_size": 7,
             "align": "left"
           },
           {
@@ -300,7 +300,7 @@
             "type": "text",
             "source": "{{context.stagePhase}}",
             "width": 66,
-            "text_size": 9,
+            "text_size": 7,
             "align": "right"
           }
         ]
@@ -321,7 +321,7 @@
     "content": {
       "margin_left": 85,
       "margin_right": 49,
-      "text_size": 9,
+      "text_size": 7,
       "align": "center",
       "text_wrap": "wrap",
       "elements": [
