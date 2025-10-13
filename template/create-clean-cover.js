@@ -45,6 +45,104 @@ function getTextContent(field) {
   return null;
 }
 
+// Text wrapping utility - breaks text into lines that fit within maxWidth
+function wrapText(font, text, maxWidth, fontSize, xMargin = 4) {
+  if (!text || text.trim() === '') return [];
+  
+  const availableWidth = maxWidth - (2 * xMargin);
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    
+    if (testWidth <= availableWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      // Check if single word is too long
+      const wordWidth = font.widthOfTextAtSize(word, fontSize);
+      if (wordWidth > availableWidth) {
+        // Word is too long, need to break it character by character
+        let partialWord = '';
+        for (const char of word) {
+          const testPartial = partialWord + char;
+          const partialWidth = font.widthOfTextAtSize(testPartial, fontSize);
+          if (partialWidth <= availableWidth) {
+            partialWord = testPartial;
+          } else {
+            if (partialWord) lines.push(partialWord);
+            partialWord = char;
+          }
+        }
+        currentLine = partialWord;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines;
+}
+
+// Calculate required height for wrapped text
+function calculateTextHeight(font, text, maxWidth, fontSize, xMargin = 4, lineSpacing = 1.2, minHeight = 17) {
+  if (!text || text.trim() === '') return minHeight;
+  
+  const lines = wrapText(font, text, maxWidth, fontSize, xMargin);
+  const lineHeight = fontSize * lineSpacing;
+  const totalHeight = lines.length * lineHeight + 4; // Add padding
+  
+  return Math.max(totalHeight, minHeight);
+}
+
+// Draw multi-line text with wrapping
+function drawMultilineText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4, lineSpacing = 1.2) {
+  if (!text || text.trim() === '') return;
+  
+  const lines = wrapText(font, text, width, size, xMargin);
+  const lineHeight = size * lineSpacing;
+  
+  // Calculate starting Y position (top of text block)
+  const totalTextHeight = lines.length * lineHeight;
+  const verticalPadding = (height - totalTextHeight) / 2;
+  let currentY = yBottom + height - verticalPadding - size * 0.7; // Adjust for baseline
+  
+  for (const line of lines) {
+    const textWidth = font.widthOfTextAtSize(line, size);
+    let textX;
+    
+    // Apply horizontal margins and alignment
+    if (align === 'center') {
+      const availableWidth = width - 2 * xMargin;
+      textX = x + xMargin + (availableWidth - textWidth) / 2;
+    } else if (align === 'right') {
+      textX = x + width - xMargin - textWidth;
+    } else {
+      textX = x + xMargin;
+    }
+    
+    page.drawText(line, {
+      x: textX,
+      y: currentY,
+      size: size,
+      font: font,
+      color: rgb(0, 0, 0)
+    });
+    
+    currentY -= lineHeight;
+  }
+}
+
+// Single-line text drawing for non-wrapping cells
 function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 5) {
   const textWidth = font.widthOfTextAtSize(text, size);
   let textX;
@@ -132,7 +230,7 @@ async function createCleanCover() {
         for (const subRow of col.rows) {
           const subHeight = subRow.height;
           
-          if (subRow.type === 'columns' && subRow.columns) {
+            if (subRow.type === 'columns' && subRow.columns) {
             let subX = currentX;
             for (const subCol of subRow.columns) {
               drawCellBorders(stroke, subCol, subX, containerY, subCol.width, subHeight);
@@ -141,7 +239,7 @@ async function createCleanCover() {
               const textContent = getTextContent(subCol);
               if (textContent && subCol.type !== 'image') {
                 const textSize = subCol.text_size || 9;
-                drawAlignedText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align);
+                drawMultilineText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align, 4, 1.2);
               }
               
               subX += subCol.width;
@@ -153,7 +251,7 @@ async function createCleanCover() {
             const textContent = getTextContent(subRow);
             if (textContent && subRow.type !== 'image') {
               const textSize = subRow.text_size || 9;
-              drawAlignedText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+              drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align, 4, 1.2);
             }
           }
           
@@ -168,7 +266,7 @@ async function createCleanCover() {
           const textContent = getTextContent(subCol);
           if (textContent && subCol.type !== 'image') {
             const textSize = subCol.text_size || 9;
-            drawAlignedText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align);
+            drawMultilineText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align, 4, 1.2);
           }
           
           subX += subCol.width;
@@ -181,7 +279,7 @@ async function createCleanCover() {
         const textContent = getTextContent(col);
         if (textContent && col.type !== 'image') {
           const textSize = col.text_size || 9;
-          drawAlignedText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+          drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
         }
       }
       

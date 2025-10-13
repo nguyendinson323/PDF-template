@@ -19,7 +19,6 @@
     "bold": "fonts/Inter-Bold.ttf"
   },
   "content": {
-    "start_y": 162,
     "tables": [
       {
         "id": "firmas_y_aprobaciones",
@@ -239,7 +238,7 @@
                 "align": "left"
               },
               {
-                "type": "image",
+                "type": "text",
                 "height": 40,
                 "source": "{{participants.creator.signature}}",
                 "align": "center"
@@ -294,7 +293,7 @@
                 "align": "left"
               },
               {
-                "type": "image",
+                "type": "text",
                 "height": 40,
                 "source": "{{participants.reviewers[0].signature}}",
                 "align": "center"
@@ -349,7 +348,7 @@
                 "align": "left"
               },
               {
-                "type": "image",
+                "type": "text",
                 "height": 40,
                 "source": "{{participants.qac.signature}}",
                 "align": "center"
@@ -404,7 +403,7 @@
                 "align": "left"
               },
               {
-                "type": "image",
+                "type": "text",
                 "height": 40,
                 "source": "{{participants.approvers[0].signature}}",
                 "align": "center"
@@ -459,7 +458,7 @@
                 "align": "left"
               },
               {
-                "type": "image",
+                "type": "text",
                 "height": 40,
                 "source": "{{participants.dcontrol.signature}}",
                 "align": "center"

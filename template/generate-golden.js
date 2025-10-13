@@ -97,6 +97,104 @@ function getTextContent(field, payload) {
   return null;
 }
 
+// Text wrapping utility - breaks text into lines that fit within maxWidth
+function wrapText(font, text, maxWidth, fontSize, xMargin = 4) {
+  if (!text || text.trim() === '') return [];
+  
+  const availableWidth = maxWidth - (2 * xMargin);
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    
+    if (testWidth <= availableWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      // Check if single word is too long
+      const wordWidth = font.widthOfTextAtSize(word, fontSize);
+      if (wordWidth > availableWidth) {
+        // Word is too long, need to break it character by character
+        let partialWord = '';
+        for (const char of word) {
+          const testPartial = partialWord + char;
+          const partialWidth = font.widthOfTextAtSize(testPartial, fontSize);
+          if (partialWidth <= availableWidth) {
+            partialWord = testPartial;
+          } else {
+            if (partialWord) lines.push(partialWord);
+            partialWord = char;
+          }
+        }
+        currentLine = partialWord;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines;
+}
+
+// Calculate required height for wrapped text
+function calculateTextHeight(font, text, maxWidth, fontSize, xMargin = 4, lineSpacing = 1.2, minHeight = 17) {
+  if (!text || text.trim() === '') return minHeight;
+  
+  const lines = wrapText(font, text, maxWidth, fontSize, xMargin);
+  const lineHeight = fontSize * lineSpacing;
+  const totalHeight = lines.length * lineHeight + 4; // Add padding
+  
+  return Math.max(totalHeight, minHeight);
+}
+
+// Draw multi-line text with wrapping
+function drawMultilineText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4, lineSpacing = 1.2) {
+  if (!text || text.trim() === '') return;
+  
+  const lines = wrapText(font, text, width, size, xMargin);
+  const lineHeight = size * lineSpacing;
+  
+  // Calculate starting Y position (top of text block)
+  const totalTextHeight = lines.length * lineHeight;
+  const verticalPadding = (height - totalTextHeight) / 2;
+  let currentY = yBottom + height - verticalPadding - size * 0.7; // Adjust for baseline
+  
+  for (const line of lines) {
+    const textWidth = font.widthOfTextAtSize(line, size);
+    let textX;
+    
+    // Apply horizontal margins and alignment
+    if (align === 'center') {
+      const availableWidth = width - 2 * xMargin;
+      textX = x + xMargin + (availableWidth - textWidth) / 2;
+    } else if (align === 'right') {
+      textX = x + width - xMargin - textWidth;
+    } else {
+      textX = x + xMargin;
+    }
+    
+    page.drawText(line, {
+      x: textX,
+      y: currentY,
+      size: size,
+      font: font,
+      color: rgb(0, 0, 0)
+    });
+    
+    currentY -= lineHeight;
+  }
+}
+
+// Single-line text drawing for non-wrapping cells
 function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4) {
   const textWidth = font.widthOfTextAtSize(text, size);
   let textX;
@@ -170,7 +268,7 @@ async function generateGoldenPdf(payloadFile) {
 
     console.log(`  ${colors.cyan}•${colors.reset} Page size: ${pageWidth}×${pageHeight} points`);
 
-    // ---------------- COVER HEADER ----------------
+    // ---------------- COVER HEADER WITH DYNAMIC HEIGHTS ----------------
     let currentY = headerFooter.header.y_position + headerFooter.header.height;
     
     for (const row of headerFooter.header.rows) {
@@ -182,6 +280,57 @@ async function generateGoldenPdf(payloadFile) {
           rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
         }
       }
+      
+      // Calculate dynamic height based on content
+      let calculatedHeight = rowHeight;
+      for (const col of row.columns) {
+        if (col.type === 'container' && col.rows) {
+          // For containers, check each sub-row
+          for (const subRow of col.rows) {
+            if (subRow.type === 'columns' && subRow.columns) {
+              for (const subCol of subRow.columns) {
+                const textContent = getTextContent(subCol, payload);
+                if (textContent && subCol.type !== 'image') {
+                  const textSize = subCol.text_size || 9;
+                  const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, subRow.height);
+                  const heightDiff = cellHeight - subRow.height;
+                  if (heightDiff > 0) {
+                    calculatedHeight = Math.max(calculatedHeight, rowHeight + heightDiff);
+                  }
+                }
+              }
+            } else {
+              const textContent = getTextContent(subRow, payload);
+              if (textContent && subRow.type !== 'image') {
+                const textSize = subRow.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, subRow.height);
+                const heightDiff = cellHeight - subRow.height;
+                if (heightDiff > 0) {
+                  calculatedHeight = Math.max(calculatedHeight, rowHeight + heightDiff);
+                }
+              }
+            }
+          }
+        } else if (col.type === 'columns' && col.columns) {
+          for (const subCol of col.columns) {
+            const textContent = getTextContent(subCol, payload);
+            if (textContent && subCol.type !== 'image') {
+              const textSize = subCol.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize, 4, 1.2, rowHeight);
+              calculatedHeight = Math.max(calculatedHeight, cellHeight);
+            }
+          }
+        } else if (col.type !== 'image') {
+          const textContent = getTextContent(col, payload);
+          if (textContent) {
+            const textSize = col.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, rowHeight);
+            calculatedHeight = Math.max(calculatedHeight, cellHeight);
+          }
+        }
+      }
+      
+      rowHeight = calculatedHeight;
       let currentX = leftMargin;
       
       for (const col of row.columns) {
@@ -201,7 +350,7 @@ async function generateGoldenPdf(payloadFile) {
                 const textContent = getTextContent(subCol, payload);
                 if (textContent && subCol.type !== 'image') {
                   const textSize = subCol.text_size || 9;
-                  drawAlignedText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align);
+                  drawMultilineText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align, 4, 1.2);
                 }
                 
                 subX += subCol.width;
@@ -212,7 +361,7 @@ async function generateGoldenPdf(payloadFile) {
               const textContent = getTextContent(subRow, payload);
               if (textContent && subRow.type !== 'image') {
                 const textSize = subRow.text_size || 9;
-                drawAlignedText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+                drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align, 4, 1.2);
               }
             }
             
@@ -226,7 +375,7 @@ async function generateGoldenPdf(payloadFile) {
             const textContent = getTextContent(subCol, payload);
             if (textContent && subCol.type !== 'image') {
               const textSize = subCol.text_size || 9;
-              drawAlignedText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align);
+              drawMultilineText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align, 4, 1.2);
             }
             
             subX += subCol.width;
@@ -238,7 +387,7 @@ async function generateGoldenPdf(payloadFile) {
           const textContent = getTextContent(col, payload);
           if (textContent && col.type !== 'image') {
             const textSize = col.text_size || 9;
-            drawAlignedText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+            drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align, 4, 1.2);
           }
         }
         
@@ -260,7 +409,7 @@ async function generateGoldenPdf(payloadFile) {
       const tableX = leftMargin;
       const titleH = firmas.title.height;
       const headerH = firmas.header.height;
-      const rowH = firmas.rows_config.height;
+      const minRowH = firmas.rows_config.height;
 
       // Title
       strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -283,24 +432,50 @@ async function generateGoldenPdf(payloadFile) {
       }
       currentY -= headerH;
 
-      // Rows
-      const dataH = rowH * firmas.rows.length;
-      strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
+      // Rows with dynamic heights
+      const rowHeights = [];
       for (let i = 0; i < firmas.rows.length; i++) {
-        if (i > 0) {
-          stroke(tableX, currentY - i * rowH, tableX + usableWidth, currentY - i * rowH);
+        let maxHeight = minRowH;
+        
+        for (let j = 0; j < firmas.rows[i].cells.length; j++) {
+          const cell = firmas.rows[i].cells[j];
+          const colWidth = firmas.header.columns[j].width;
+          const textContent = getTextContent(cell, payload);
+          
+          if (textContent) {
+            const cellHeight = calculateTextHeight(font, textContent, colWidth, firmas.rows_config.text_size, 4, 1.2, minRowH);
+            maxHeight = Math.max(maxHeight, cellHeight);
+          }
         }
+        
+        rowHeights.push(maxHeight);
+      }
+      
+      const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
+      strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
+      
+      let rowY = currentY;
+      for (let i = 0; i < firmas.rows.length; i++) {
+        const rowH = rowHeights[i];
+        
+        if (i > 0) {
+          stroke(tableX, rowY, tableX + usableWidth, rowY);
+        }
+        
         let cellX = tableX;
         for (let j = 0; j < firmas.rows[i].cells.length; j++) {
           const cell = firmas.rows[i].cells[j];
           const colWidth = firmas.header.columns[j].width;
           const textContent = getTextContent(cell, payload);
           if (textContent) {
-            drawAlignedText(page, font, textContent, cellX, currentY - (i * rowH) - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align);
+            drawMultilineText(page, font, textContent, cellX, rowY - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align, 4, 1.2);
           }
           cellX += colWidth;
         }
+        
+        rowY -= rowH;
       }
+      
       accX = tableX;
       for (const col of firmas.header.columns) {
         accX += col.width;
@@ -310,7 +485,7 @@ async function generateGoldenPdf(payloadFile) {
       }
       currentY -= dataH;
 
-      console.log(`  ${colors.green}✓${colors.reset} Rendered ${firmas.rows.length} rows in approval table`);
+      console.log(`  ${colors.green}✓${colors.reset} Rendered ${firmas.rows.length} rows in approval table (dynamic heights)`);
     }
 
     // == SIGNING CONTAINER ==
@@ -378,7 +553,7 @@ async function generateGoldenPdf(payloadFile) {
       const tableX = leftMargin;
       const titleH = rev.title.height;
       const headerH = rev.header.height;
-      const rowH = rev.row_template.height;
+      const minRowH = rev.row_template.height;
 
       // Title
       strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -401,14 +576,38 @@ async function generateGoldenPdf(payloadFile) {
       }
       currentY -= headerH;
 
-      // Dynamic rows from payload
+      // Dynamic rows from payload with dynamic heights
       if (payload.revision_history && payload.revision_history.length > 0) {
-        const dataH = rowH * payload.revision_history.length;
+        // Calculate row heights based on content
+        const rowHeights = [];
+        for (let i = 0; i < payload.revision_history.length; i++) {
+          const revisionEntry = payload.revision_history[i];
+          let maxHeight = minRowH;
+          
+          // Check each cell to find the tallest content
+          for (let j = 0; j < rev.row_template.cells.length; j++) {
+            const cellTemplate = rev.row_template.cells[j];
+            const colWidth = rev.header.columns[j].width;
+            const value = resolveTemplate(cellTemplate.source, revisionEntry);
+            
+            if (value) {
+              const cellHeight = calculateTextHeight(font, value, colWidth, rev.row_template.text_size, 4, 1.2, minRowH);
+              maxHeight = Math.max(maxHeight, cellHeight);
+            }
+          }
+          
+          rowHeights.push(maxHeight);
+        }
+        
+        const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
         strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
         
+        let rowY = currentY;
         for (let i = 0; i < payload.revision_history.length; i++) {
+          const rowH = rowHeights[i];
+          
           if (i > 0) {
-            stroke(tableX, currentY - i * rowH, tableX + usableWidth, currentY - i * rowH);
+            stroke(tableX, rowY, tableX + usableWidth, rowY);
           }
           
           let cellX = tableX;
@@ -420,13 +619,17 @@ async function generateGoldenPdf(payloadFile) {
             const value = resolveTemplate(cellTemplate.source, revisionEntry);
             
             if (value) {
-              drawAlignedText(page, font, value, cellX, currentY - (i * rowH) - rowH, colWidth, rowH, rev.row_template.text_size, rev.row_template.align);
+              // Use multiline text for cells that need wrapping
+              drawMultilineText(page, font, value, cellX, rowY - rowH, colWidth, rowH, rev.row_template.text_size, rev.row_template.align, 4, 1.2);
             }
             
             cellX += colWidth;
           }
+          
+          rowY -= rowH;
         }
         
+        // Draw vertical lines
         accX = tableX;
         for (const col of rev.header.columns) {
           accX += col.width;
@@ -436,17 +639,18 @@ async function generateGoldenPdf(payloadFile) {
         }
         currentY -= dataH;
 
-        console.log(`  ${colors.green}✓${colors.reset} Rendered ${payload.revision_history.length} rows in revision table`);
+        console.log(`  ${colors.green}✓${colors.reset} Rendered ${payload.revision_history.length} rows in revision table (dynamic heights)`);
       } else {
         // Draw one template row
-        strokeRect(stroke, tableX, currentY - rowH, usableWidth, rowH);
+        strokeRect(stroke, tableX, currentY - minRowH, usableWidth, minRowH);
         accX = tableX;
         for (const col of rev.header.columns) {
           accX += col.width;
           if (round2(accX) < round2(tableX + usableWidth)) {
-            stroke(accX, currentY - rowH, accX, currentY);
+            stroke(accX, currentY - minRowH, accX, currentY);
           }
         }
+        currentY -= minRowH;
         console.log(`  ${colors.yellow}ℹ${colors.reset} No revision history data, rendered empty template row`);
       }
     }
