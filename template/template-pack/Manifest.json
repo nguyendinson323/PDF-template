@@ -68,7 +68,7 @@
         "rows": [
           {
             "height": 17,
-            "text_size": 5,
+            "text_size": 8,
             "align": "left",
             "cells": [
               {
@@ -93,7 +93,7 @@
           },
           {
             "height": 17,
-            "text_size": 5,
+            "text_size": 8,
             "align": "left",
             "cells": [
               {
@@ -118,7 +118,7 @@
           },
           {
             "height": 17,
-            "text_size": 5,
+            "text_size": 8,
             "align": "left",
             "cells": [
               {
@@ -143,7 +143,7 @@
           },
           {
             "height": 17,
-            "text_size": 5,
+            "text_size": 8,
             "align": "left",
             "cells": [
               {
@@ -168,7 +168,7 @@
           },
           {
             "height": 17,
-            "text_size": 5,
+            "text_size": 8,
             "align": "left",
             "cells": [
               {
@@ -480,7 +480,7 @@
         "type": "dynamic_table",
         "margin_top": 30,
         "title": {
-          "text": "CONTROL DE CAMBIOS (Dinamic Table)",
+          "text": "CONTROL DE CAMBIOS",
           "height": 28,
           "text_size": 11,
           "align": "center"

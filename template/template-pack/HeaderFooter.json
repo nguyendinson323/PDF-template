@@ -62,7 +62,7 @@
                     "text": "Código:",
                     "width": 44,
                     "text_size": 9,
-                    "align": "center",
+                    "align": "left",
                     "border_right": false
                   },
                   {

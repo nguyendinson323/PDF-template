@@ -1,5 +1,6 @@
 // create-clean-cover.js — refactored to use cover_design.json + Manifest.json
 const { PDFDocument, rgb } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,6 +30,58 @@ function strokeRect(stroke, x, y, w, h) {
 // ---------- config ----------
 const BORDER_CONFIG = { color: rgb(0, 0, 0), thickness: 0 }; // hairline
 
+// ---------- helper functions ----------
+function isPlaceholder(text) {
+  return text && text.includes('{{') && text.includes('}}');
+}
+
+function getTextContent(field) {
+  if (field.text && !isPlaceholder(field.text)) {
+    return field.text;
+  }
+  if (field.source && !isPlaceholder(field.source)) {
+    return field.source;
+  }
+  return null;
+}
+
+function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left') {
+  const textWidth = font.widthOfTextAtSize(text, size);
+  let textX;
+  
+  if (align === 'center') {
+    textX = x + (width - textWidth) / 2;
+  } else if (align === 'right') {
+    textX = x + width - textWidth - 2;
+  } else {
+    textX = x + 2;
+  }
+  
+  // Vertical centering: account for baseline positioning
+  // Text baseline is approximately 30% from bottom of font height
+  const textY = yBottom + height / 2 - size * 0.3;
+  
+  page.drawText(text, {
+    x: textX,
+    y: textY,
+    size: size,
+    font: font,
+    color: rgb(0, 0, 0)
+  });
+}
+
+function drawCellBorders(stroke, field, x, y, width, height) {
+  const drawTop = field.border_top !== false;
+  const drawBottom = field.border_bottom !== false;
+  const drawLeft = field.border_left !== false;
+  const drawRight = field.border_right !== false;
+  
+  if (drawTop) stroke(x, y, x + width, y);
+  if (drawBottom) stroke(x, y - height, x + width, y - height);
+  if (drawLeft) stroke(x, y - height, x, y);
+  if (drawRight) stroke(x + width, y - height, x + width, y);
+}
+
 // ---------- load design files ----------
 const headerFooterPath = path.join(__dirname, 'HeaderFooter.json');
 const manifestPath = path.join(__dirname, 'Manifest.json');
@@ -41,8 +94,14 @@ async function createCleanCover() {
   const usableWidth = pageWidth - leftMargin - rightMargin;
 
   const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
   const stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+
+  // Load fonts
+  const fontPath = path.join(__dirname, headerFooter.fonts.regular);
+  const fontBytes = fs.readFileSync(fontPath);
+  const font = await pdfDoc.embedFont(fontBytes);
 
   // ---------------- COVER HEADER: margin-based dynamic layout ----------------
   let currentY = headerFooter.header.y_position + headerFooter.header.height;
@@ -63,28 +122,26 @@ async function createCleanCover() {
           if (subRow.type === 'columns' && subRow.columns) {
             let subX = currentX;
             for (const subCol of subRow.columns) {
-              const drawTop = subCol.border_top !== false;
-              const drawBottom = subCol.border_bottom !== false;
-              const drawLeft = subCol.border_left !== false;
-              const drawRight = subCol.border_right !== false;
+              drawCellBorders(stroke, subCol, subX, containerY, subCol.width, subHeight);
               
-              if (drawTop) stroke(subX, containerY, subX + subCol.width, containerY);
-              if (drawBottom) stroke(subX, containerY - subHeight, subX + subCol.width, containerY - subHeight);
-              if (drawLeft) stroke(subX, containerY - subHeight, subX, containerY);
-              if (drawRight) stroke(subX + subCol.width, containerY - subHeight, subX + subCol.width, containerY);
+              // Draw text if not a placeholder
+              const textContent = getTextContent(subCol);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                drawAlignedText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align);
+              }
               
               subX += subCol.width;
             }
-          } else {
-            const drawTop = subRow.border_top !== false;
-            const drawBottom = subRow.border_bottom !== false;
-            const drawLeft = subRow.border_left !== false;
-            const drawRight = subRow.border_right !== false;
+  } else {
+            drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
             
-            if (drawTop) stroke(currentX, containerY, currentX + colWidth, containerY);
-            if (drawBottom) stroke(currentX, containerY - subHeight, currentX + colWidth, containerY - subHeight);
-            if (drawLeft) stroke(currentX, containerY - subHeight, currentX, containerY);
-            if (drawRight) stroke(currentX + colWidth, containerY - subHeight, currentX + colWidth, containerY);
+            // Draw text if not a placeholder
+            const textContent = getTextContent(subRow);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              drawAlignedText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+            }
           }
           
           containerY -= subHeight;
@@ -92,29 +149,27 @@ async function createCleanCover() {
       } else if (col.type === 'columns' && col.columns) {
         let subX = currentX;
         for (const subCol of col.columns) {
-          const drawTop = subCol.border_top !== false;
-          const drawBottom = subCol.border_bottom !== false;
-          const drawLeft = subCol.border_left !== false;
-          const drawRight = subCol.border_right !== false;
+          drawCellBorders(stroke, subCol, subX, currentY, subCol.width, rowHeight);
           
-          if (drawTop) stroke(subX, currentY, subX + subCol.width, currentY);
-          if (drawBottom) stroke(subX, currentY - rowHeight, subX + subCol.width, currentY - rowHeight);
-          if (drawLeft) stroke(subX, currentY - rowHeight, subX, currentY);
-          if (drawRight) stroke(subX + subCol.width, currentY - rowHeight, subX + subCol.width, currentY);
+          // Draw text if not a placeholder
+          const textContent = getTextContent(subCol);
+          if (textContent && subCol.type !== 'image') {
+            const textSize = subCol.text_size || 9;
+            drawAlignedText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align);
+          }
           
           subX += subCol.width;
         }
       } else {
         // Regular column
-        const drawTop = col.border_top !== false;
-        const drawBottom = col.border_bottom !== false;
-        const drawLeft = col.border_left !== false;
-        const drawRight = col.border_right !== false;
+        drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
         
-        if (drawTop) stroke(currentX, currentY, currentX + colWidth, currentY);
-        if (drawBottom) stroke(currentX, currentY - rowHeight, currentX + colWidth, currentY - rowHeight);
-        if (drawLeft) stroke(currentX, currentY - rowHeight, currentX, currentY);
-        if (drawRight) stroke(currentX + colWidth, currentY - rowHeight, currentX + colWidth, currentY);
+        // Draw text if not a placeholder
+        const textContent = getTextContent(col);
+        if (textContent && col.type !== 'image') {
+          const textSize = col.text_size || 9;
+          drawAlignedText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+        }
       }
       
       currentX += colWidth;
@@ -137,12 +192,18 @@ async function createCleanCover() {
 
     // Title
     strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+    if (firmas.title.text) {
+      drawAlignedText(page, font, firmas.title.text, tableX, currentY - titleH, usableWidth, titleH, firmas.title.text_size, 'center');
+    }
     currentY -= titleH;
 
     // Header
     strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
     let accX = tableX;
     for (const col of firmas.header.columns) {
+      if (col.text) {
+        drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, firmas.header.text_size, 'center');
+      }
       accX += col.width;
       if (round2(accX) < round2(tableX + usableWidth)) {
         stroke(accX, currentY - headerH, accX, currentY);
@@ -153,8 +214,21 @@ async function createCleanCover() {
     // Rows
     const dataH = rowH * firmas.rows.length;
     strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
-    for (let i = 1; i < firmas.rows.length; i++) {
+    for (let i = 0; i < firmas.rows.length; i++) {
+      if (i > 0) {
       stroke(tableX, currentY - i * rowH, tableX + usableWidth, currentY - i * rowH);
+      }
+      // Draw row text
+      let cellX = tableX;
+      for (let j = 0; j < firmas.rows[i].cells.length; j++) {
+        const cell = firmas.rows[i].cells[j];
+        const colWidth = firmas.header.columns[j].width;
+        const textContent = getTextContent(cell);
+        if (textContent) {
+          drawAlignedText(page, font, textContent, cellX, currentY - (i * rowH) - rowH, colWidth, rowH, firmas.rows[i].text_size, 'left');
+        }
+        cellX += colWidth;
+      }
     }
     accX = tableX;
     for (const col of firmas.header.columns) {
@@ -195,14 +269,25 @@ async function createCleanCover() {
               stroke(colX + colWidth, yBottom, colX + colWidth, blockY); // right on last column
             }
             
+            // Draw text if not a placeholder
+            const textContent = getTextContent(col);
+            if (textContent) {
+              const textSize = col.text_size || 9;
+              drawAlignedText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align);
+            }
+            
             colX += colWidth;
           }
         } else {
           // Normal row
-          if (r.border_top !== false) stroke(blockX, blockY, blockX + b.width, blockY);
-          if (r.border_bottom !== false) stroke(blockX, yBottom, blockX + b.width, yBottom);
-          stroke(blockX, blockY, blockX, yBottom);
-          stroke(blockX + b.width, blockY, blockX + b.width, yBottom);
+          drawCellBorders(stroke, r, blockX, blockY, b.width, h);
+
+          // Draw text if not a placeholder
+          const textContent = getTextContent(r);
+          if (textContent && r.type !== 'image') {
+            const textSize = r.text_size || 9;
+            drawAlignedText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align);
+          }
         }
 
         blockY = yBottom;
@@ -228,12 +313,18 @@ async function createCleanCover() {
 
     // Title
     strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+    if (rev.title.text) {
+      drawAlignedText(page, font, rev.title.text, tableX, currentY - titleH, usableWidth, titleH, rev.title.text_size, 'center');
+    }
     currentY -= titleH;
 
     // Header
     strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
     let accX = tableX;
     for (const col of rev.header.columns) {
+      if (col.text) {
+        drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, rev.header.text_size, 'center');
+      }
       accX += col.width;
       if (round2(accX) < round2(tableX + usableWidth)) {
         stroke(accX, currentY - headerH, accX, currentY);
@@ -259,12 +350,12 @@ async function createCleanCover() {
     const lineX1 = leftMargin + footer.separator_line.margin_left;
     const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
     
-    page.drawLine({
-      start: { x: lineX1, y: lineY },
-      end: { x: lineX2, y: lineY },
-      color: rgb(0, 0, 1),
+  page.drawLine({
+    start: { x: lineX1, y: lineY },
+    end: { x: lineX2, y: lineY },
+    color: rgb(0, 0, 1),
       thickness: footer.separator_line.thickness
-    });
+  });
   }
 
   // ---------------- SAVE ----------------
