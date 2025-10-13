@@ -1,7 +1,7 @@
 {
   "document": {
     "brand": {
-      "logoUrl": "https://passfy.com/assets/logo.png"
+      "logoUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&h=100&fit=crop"
     },
     "code": "PAS-LONG-777",
     "title": "Document Testing Extremely Long Descriptions and Text Overflow Handling",

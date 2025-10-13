@@ -32,6 +32,44 @@ const QR_CODE_SIZE = 50; // QR code width and height in points (square)
 
 const round2 = n => Math.round(n * 100) / 100;
 
+// ==================================================================================
+// TABLE RENDERING HELPERS
+// ==================================================================================
+
+// Re-render table title and header on a new page
+async function renderTableHeaderOnNewPage(page, font, stroke, tableConfig, tableX, usableWidth, currentY) {
+  let y = currentY;
+  const titleH = tableConfig.title.height;
+  const headerH = tableConfig.header.height;
+  
+  // Render table title
+  strokeRect(stroke, tableX, y - titleH, usableWidth, titleH);
+  if (tableConfig.title.text) {
+    drawAlignedText(page, font, tableConfig.title.text, tableX, y - titleH, usableWidth, titleH, tableConfig.title.text_size, 'center');
+  }
+  y -= titleH;
+  
+  // Render table header
+  strokeRect(stroke, tableX, y - headerH, usableWidth, headerH);
+  let accX = tableX;
+  for (const col of tableConfig.header.columns) {
+    if (col.text) {
+      drawAlignedText(page, font, col.text, accX, y - headerH, col.width, headerH, tableConfig.header.text_size, 'center');
+    }
+    accX += col.width;
+    if (round2(accX) < round2(tableX + usableWidth)) {
+      stroke(accX, y - headerH, accX, y);
+    }
+  }
+  y -= headerH;
+  
+  return y;
+}
+
+// ==================================================================================
+// IMAGE RENDERING HELPERS
+// ==================================================================================
+
 // Generate QR code as PNG buffer
 async function generateQRCode(text, width = 150) {
   try {
@@ -46,6 +84,141 @@ async function generateQRCode(text, width = 150) {
     console.error('Error generating QR code:', error);
     return null;
   }
+}
+
+// Render QR code image in a cell
+async function renderQRCode(page, pdfDoc, qrData, x, y, size) {
+  if (!qrData) return;
+  
+  const qrBuffer = await generateQRCode(qrData);
+  if (!qrBuffer) return;
+  
+  const qrImage = await pdfDoc.embedPng(qrBuffer);
+  page.drawImage(qrImage, {
+    x: x,
+    y: y,
+    width: size,
+    height: size
+  });
+}
+
+// Fetch image from URL
+async function fetchImageFromUrl(url) {
+  try {
+    const https = require('https');
+    const http = require('http');
+    
+    return new Promise((resolve, reject) => {
+      const protocol = url.startsWith('https') ? https : http;
+      
+      protocol.get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to fetch image: ${response.statusCode}`));
+          return;
+        }
+        
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+        response.on('error', reject);
+      }).on('error', reject);
+    });
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    return null;
+  }
+}
+
+// Render logo from URL or placeholder
+async function renderLogo(page, pdfDoc, font, logoUrl, x, y, width, height) {
+  if (!logoUrl) {
+    renderLogoPlaceholder(page, font, x, y, width, height);
+    return;
+  }
+  
+  try {
+    // Try to fetch and embed the logo image
+    const imageBuffer = await fetchImageFromUrl(logoUrl);
+    
+    if (!imageBuffer) {
+      renderLogoPlaceholder(page, font, x, y, width, height);
+      return;
+    }
+    
+    // Determine image type and embed
+    let image;
+    const urlLower = logoUrl.toLowerCase();
+    
+    if (urlLower.includes('.png') || urlLower.includes('image/png')) {
+      image = await pdfDoc.embedPng(imageBuffer);
+    } else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('image/jpeg')) {
+      image = await pdfDoc.embedJpg(imageBuffer);
+    } else {
+      // Try PNG first, then JPG
+      try {
+        image = await pdfDoc.embedPng(imageBuffer);
+      } catch {
+        image = await pdfDoc.embedJpg(imageBuffer);
+      }
+    }
+    
+    // Calculate scaled dimensions to fit within the cell while maintaining aspect ratio
+    const imgWidth = image.width;
+    const imgHeight = image.height;
+    const aspectRatio = imgWidth / imgHeight;
+    
+    let drawWidth = width;
+    let drawHeight = height;
+    
+    if (width / height > aspectRatio) {
+      // Cell is wider than image aspect ratio
+      drawWidth = height * aspectRatio;
+    } else {
+      // Cell is taller than image aspect ratio
+      drawHeight = width / aspectRatio;
+    }
+    
+    // Center the image in the cell
+    const drawX = x + (width - drawWidth) / 2;
+    const drawY = y + (height - drawHeight) / 2;
+    
+    page.drawImage(image, {
+      x: drawX,
+      y: drawY,
+      width: drawWidth,
+      height: drawHeight
+    });
+  } catch (error) {
+    console.error('Error rendering logo:', error.message);
+    renderLogoPlaceholder(page, font, x, y, width, height);
+  }
+}
+
+// Render logo placeholder
+function renderLogoPlaceholder(page, font, x, y, width, height) {
+  // Draw border for logo placeholder
+  page.drawRectangle({
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    borderColor: rgb(0.7, 0.7, 0.7),
+    borderWidth: 1
+  });
+  
+  // Draw "LOGO" text in the center
+  const placeholderText = 'LOGO';
+  const textWidth = font.widthOfTextAtSize(placeholderText, LOGO_TEXT_SIZE);
+  const textX = x + (width - textWidth) / 2;
+  const textY = y + (height - LOGO_TEXT_SIZE) / 2;
+  
+  page.drawText(placeholderText, {
+    x: textX,
+    y: textY,
+    size: LOGO_TEXT_SIZE,
+    font: font,
+    color: rgb(0.5, 0.5, 0.5)
+  });
 }
 
 function edgeKey(x1, y1, x2, y2) {
@@ -405,56 +578,17 @@ async function renderCoverHeader(context) {
           const imageData = resolveTemplate(col.source, payload);
           
           if (col.id === 'qr_code') {
-            // Generate QR code
-            if (imageData) {
-              const qrBuffer = await generateQRCode(imageData);
-              if (qrBuffer) {
-                const qrImage = await pdfDoc.embedPng(qrBuffer);
-                
-                // Center the QR code in the cell using centralized size
-                const qrX = currentX + (colWidth - QR_CODE_SIZE) / 2;
-                const qrY = currentY - (rowHeight + QR_CODE_SIZE) / 2;
-                
-                page.drawImage(qrImage, {
-                  x: qrX,
-                  y: qrY,
-                  width: QR_CODE_SIZE,
-                  height: QR_CODE_SIZE
-                });
-              }
-            }
+            // Render QR code centered in cell
+            const qrX = currentX + (colWidth - QR_CODE_SIZE) / 2;
+            const qrY = currentY - (rowHeight + QR_CODE_SIZE) / 2;
+            await renderQRCode(page, pdfDoc, imageData, qrX, qrY, QR_CODE_SIZE);
           } else {
-            // For logo or other images, display "LOGO" text as placeholder
-            // (URL loading would require network access, which is not implemented yet)
-            // Calculate logo size based on cell size minus margin
+            // Render logo from URL with margin
             const logoWidth = colWidth - (LOGO_MARGIN * 2);
             const logoHeight = rowHeight - (LOGO_MARGIN * 2);
             const logoX = currentX + LOGO_MARGIN;
             const logoY = currentY - rowHeight + LOGO_MARGIN;
-            
-            // Draw border for logo placeholder
-            page.drawRectangle({
-              x: logoX,
-              y: logoY,
-              width: logoWidth,
-              height: logoHeight,
-              borderColor: rgb(0.7, 0.7, 0.7),
-              borderWidth: 1
-            });
-            
-            // Draw "LOGO" text in the center
-            const placeholderText = 'LOGO';
-            const textWidth = font.widthOfTextAtSize(placeholderText, LOGO_TEXT_SIZE);
-            const textX = logoX + (logoWidth - textWidth) / 2;
-            const textY = logoY + (logoHeight - LOGO_TEXT_SIZE) / 2;
-            
-            page.drawText(placeholderText, {
-              x: textX,
-              y: textY,
-              size: LOGO_TEXT_SIZE,
-              font: font,
-              color: rgb(0.5, 0.5, 0.5)
-            });
+            await renderLogo(page, pdfDoc, font, imageData, logoX, logoY, logoWidth, logoHeight);
           }
         } else {
           const textContent = getTextContent(col, payload);
@@ -538,26 +672,8 @@ async function renderApprovalTable(context) {
       // Apply table margin_top on new page
       currentY -= (firmas.margin_top || 0);
       
-      // Re-render table title on new page (exactly like first page)
-      strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
-      if (firmas.title.text) {
-        drawAlignedText(page, font, firmas.title.text, tableX, currentY - titleH, usableWidth, titleH, firmas.title.text_size, 'center');
-      }
-      currentY -= titleH;
-      
-      // Re-render table header on new page (exactly like first page)
-      strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
-      let accX = tableX;
-      for (const col of firmas.header.columns) {
-        if (col.text) {
-          drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, firmas.header.text_size, 'center');
-        }
-        accX += col.width;
-        if (round2(accX) < round2(tableX + usableWidth)) {
-          stroke(accX, currentY - headerH, accX, currentY);
-        }
-      }
-      currentY -= headerH;
+      // Re-render table title and header on new page using helper
+      currentY = await renderTableHeaderOnNewPage(page, font, stroke, firmas, tableX, usableWidth, currentY);
     }
     
     // Draw row border
@@ -782,26 +898,8 @@ async function renderRevisionTable(context) {
         // Apply table margin_top on new page
         currentY -= (rev.margin_top || 0);
         
-        // Re-render table title on new page (exactly like first page)
-        strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
-        if (rev.title.text) {
-          drawAlignedText(page, font, rev.title.text, tableX, currentY - titleH, usableWidth, titleH, rev.title.text_size, 'center');
-        }
-        currentY -= titleH;
-        
-        // Re-render table header on new page (exactly like first page)
-        strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
-        let accX = tableX;
-        for (const col of rev.header.columns) {
-          if (col.text) {
-            drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, rev.header.text_size, 'center');
-          }
-          accX += col.width;
-          if (round2(accX) < round2(tableX + usableWidth)) {
-            stroke(accX, currentY - headerH, accX, currentY);
-          }
-        }
-        currentY -= headerH;
+        // Re-render table title and header on new page using helper
+        currentY = await renderTableHeaderOnNewPage(page, font, stroke, rev, tableX, usableWidth, currentY);
       }
       
       // Draw row border

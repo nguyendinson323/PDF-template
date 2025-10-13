@@ -1,8 +1,8 @@
 node_modules
 nul
-*.md
 *.txt
 *.pdf
 .claude
 *.docx
 *.ttf
+FLOWCHART_ANALYSIS.md
