@@ -358,11 +358,20 @@
     ]
   },
   "content": {
+    "region": {
+      "x": 71,
+      "y": 99,
+      "width": 471,
+      "height": 561
+    },
     "tables": [
       {
         "id": "firmas_y_aprobaciones",
         "type": "fixed_table",
-        "margin_top": 20,
+        "x": 71,
+        "y": 636,
+        "width": 470,
+        "margin_top": 14,
         "title": {
           "text": "FIRMAS Y APROBACIONES",
           "height": 28,
@@ -537,17 +546,19 @@
       {
         "id": "signing_container",
         "type": "signature_blocks",
-        "margin_top": 30,
+        "x": 71,
+        "y": 493,
+        "margin_top": 22,
         "blocks": [
           {
             "id": "preparer_block",
             "x": 0,
             "y": 0,
-            "width": 130,
+            "width": 128,
             "rows": [
               {
                 "type": "text",
-                "height": 12,
+                "height": 14,
                 "text": "Elaborado por:",
                 "text_size": 9,
                 "align": "left",
@@ -555,7 +566,7 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 5,
                 "source": "{{participants.creator.name}}",
                 "text_size": 9,
                 "align": "right",
@@ -563,7 +574,7 @@
               },
               {
                 "type": "columns",
-                "height": 13,
+                "height": 9,
                 "columns": [
                   {
                     "width": 42,
@@ -581,14 +592,14 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 6,
                 "text": "Firma:",
                 "text_size": 9,
                 "align": "left"
               },
               {
                 "type": "image",
-                "height": 40,
+                "height": 41,
                 "source": "{{participants.creator.signature}}",
                 "align": "center"
               }
@@ -596,13 +607,13 @@
           },
           {
             "id": "reviewer_block",
-            "x": 170,
+            "x": 163,
             "y": 0,
-            "width": 130,
+            "width": 128,
             "rows": [
               {
                 "type": "text",
-                "height": 12,
+                "height": 14,
                 "text": "Revisado por:",
                 "text_size": 9,
                 "align": "left",
@@ -610,7 +621,7 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 5,
                 "source": "{{participants.reviewers[0].name}}",
                 "text_size": 9,
                 "align": "right",
@@ -618,7 +629,7 @@
               },
               {
                 "type": "columns",
-                "height": 13,
+                "height": 9,
                 "columns": [
                   {
                     "width": 42,
@@ -636,14 +647,14 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 6,
                 "text": "Firma:",
                 "text_size": 9,
                 "align": "left"
               },
               {
                 "type": "image",
-                "height": 40,
+                "height": 41,
                 "source": "{{participants.reviewers[0].signature}}",
                 "align": "center"
               }
@@ -651,13 +662,13 @@
           },
           {
             "id": "qac_block",
-            "x": 340,
+            "x": 327,
             "y": 0,
-            "width": 130,
+            "width": 128,
             "rows": [
               {
                 "type": "text",
-                "height": 12,
+                "height": 14,
                 "text": "QAC:",
                 "text_size": 9,
                 "align": "left",
@@ -665,7 +676,7 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 5,
                 "source": "{{participants.qac.name}}",
                 "text_size": 9,
                 "align": "right",
@@ -673,7 +684,7 @@
               },
               {
                 "type": "columns",
-                "height": 13,
+                "height": 9,
                 "columns": [
                   {
                     "width": 42,
@@ -691,14 +702,14 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 6,
                 "text": "Firma:",
                 "text_size": 9,
                 "align": "left"
               },
               {
                 "type": "image",
-                "height": 40,
+                "height": 41,
                 "source": "{{participants.qac.signature}}",
                 "align": "center"
               }
@@ -706,13 +717,13 @@
           },
           {
             "id": "approver_block",
-            "x": 84,
-            "y": 120,
-            "width": 130,
+            "x": 85,
+            "y": 94,
+            "width": 128,
             "rows": [
               {
                 "type": "text",
-                "height": 12,
+                "height": 14,
                 "text": "Aprobado por:",
                 "text_size": 9,
                 "align": "left",
@@ -720,7 +731,7 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 5,
                 "source": "{{participants.approvers[0].name}}",
                 "text_size": 9,
                 "align": "right",
@@ -728,7 +739,7 @@
               },
               {
                 "type": "columns",
-                "height": 13,
+                "height": 9,
                 "columns": [
                   {
                     "width": 42,
@@ -746,14 +757,14 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 6,
                 "text": "Firma:",
                 "text_size": 9,
                 "align": "left"
               },
               {
                 "type": "image",
-                "height": 40,
+                "height": 41,
                 "source": "{{participants.approvers[0].signature}}",
                 "align": "center"
               }
@@ -761,13 +772,13 @@
           },
           {
             "id": "publisher_block",
-            "x": 255,
-            "y": 120,
-            "width": 130,
+            "x": 248,
+            "y": 94,
+            "width": 128,
             "rows": [
               {
                 "type": "text",
-                "height": 12,
+                "height": 14,
                 "text": "Publicado por:",
                 "text_size": 9,
                 "align": "left",
@@ -775,7 +786,7 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 5,
                 "source": "{{participants.dcontrol.name}}",
                 "text_size": 9,
                 "align": "right",
@@ -783,7 +794,7 @@
               },
               {
                 "type": "columns",
-                "height": 13,
+                "height": 9,
                 "columns": [
                   {
                     "width": 42,
@@ -801,14 +812,14 @@
               },
               {
                 "type": "text",
-                "height": 13,
+                "height": 6,
                 "text": "Firma:",
                 "text_size": 9,
                 "align": "left"
               },
               {
                 "type": "image",
-                "height": 40,
+                "height": 41,
                 "source": "{{participants.dcontrol.signature}}",
                 "align": "center"
               }
@@ -819,7 +830,10 @@
       {
         "id": "control_de_cambios",
         "type": "dynamic_table",
-        "margin_top": 30,
+        "x": 71,
+        "y": 266,
+        "width": 470,
+        "margin_top": 72,
         "title": {
           "text": "CONTROL DE CAMBIOS (Dinamic Table)",
           "height": 28,

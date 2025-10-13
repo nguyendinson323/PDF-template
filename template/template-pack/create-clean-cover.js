@@ -27,7 +27,7 @@ function strokeRect(stroke, x, y, w, h) {
 }
 
 // ---------- config ----------
-const BORDER_CONFIG = { color: rgb(0.3, 0.3, 0.3), thickness: 0 }; // hairline
+const BORDER_CONFIG = { color: rgb(0, 0, 0), thickness: 0 }; // hairline
 
 // ---------- design ----------
 const designPath = path.join(__dirname, '..', 'cover_design.json');
