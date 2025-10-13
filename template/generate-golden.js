@@ -97,7 +97,7 @@ function getTextContent(field, payload) {
   return null;
 }
 
-function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 2) {
+function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 4) {
   const textWidth = font.widthOfTextAtSize(text, size);
   let textX;
   

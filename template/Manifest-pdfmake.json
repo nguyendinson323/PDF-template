@@ -1,0 +1,531 @@
+{
+  "$schema": "./schema/manifest.schema.json",
+  "version": "1.0.0",
+  "coordinate_system": "top-left",
+  "description": "Uses pdfmake coordinate system: Y=0 at top, increases downward",
+  "page": {
+    "width": 612,
+    "height": 792,
+    "unit": "point",
+    "margins": {
+      "top": 142,
+      "bottom": 99,
+      "left": 71,
+      "right": 71
+    }
+  },
+  "fonts": {
+    "regular": "fonts/Inter-Regular.ttf",
+    "bold": "fonts/Inter-Bold.ttf"
+  },
+  "content": {
+    "start_y": 162,
+    "tables": [
+      {
+        "id": "firmas_y_aprobaciones",
+        "type": "fixed_table",
+        "margin_top": 30,
+        "title": {
+          "text": "FIRMAS Y APROBACIONES",
+          "height": 28,
+          "text_size": 11,
+          "align": "center"
+        },
+        "header": {
+          "height": 26,
+          "text_size": 9,
+          "align": "center",
+          "columns": [
+            {
+              "id": "action",
+              "text": "Acción",
+              "width": 52
+            },
+            {
+              "id": "name",
+              "text": "Nombre",
+              "width": 87
+            },
+            {
+              "id": "position",
+              "text": "Cargo",
+              "width": 49
+            },
+            {
+              "id": "checklist_id",
+              "text": "ID Check List",
+              "width": 101
+            },
+            {
+              "id": "date",
+              "text": "Fecha",
+              "width": 89
+            },
+            {
+              "id": "status",
+              "text": "Estado",
+              "width": 93
+            }
+          ]
+        },
+        "rows_config": {
+          "height": 17,
+          "text_size": 7,
+          "align": "left"
+        },
+        "rows": [
+          {
+            "cells": [
+              {
+                "text": "Elaboró"
+              },
+              {
+                "source": "{{participants.creator.name}}"
+              },
+              {
+                "source": "{{participants.creator.jobTitle}}"
+              },
+              {
+                "source": "{{checklists.creator.id}}"
+              },
+              {
+                "source": "{{checklists.creator.date}}"
+              },
+              {
+                "source": "{{checklists.creator.status}}"
+              }
+            ]
+          },
+          {
+            "cells": [
+              {
+                "text": "Revisó"
+              },
+              {
+                "source": "{{participants.reviewers[0].name}}"
+              },
+              {
+                "source": "{{participants.reviewers[0].jobTitle}}"
+              },
+              {
+                "source": "{{checklists.review[0].id}}"
+              },
+              {
+                "source": "{{checklists.review[0].date}}"
+              },
+              {
+                "source": "{{checklists.review[0].status}}"
+              }
+            ]
+          },
+          {
+            "cells": [
+              {
+                "text": "QAC"
+              },
+              {
+                "source": "{{participants.qac.name}}"
+              },
+              {
+                "source": "{{participants.qac.jobTitle}}"
+              },
+              {
+                "source": "{{checklists.qac.id}}"
+              },
+              {
+                "source": "{{checklists.qac.date}}"
+              },
+              {
+                "source": "{{checklists.qac.status}}"
+              }
+            ]
+          },
+          {
+            "cells": [
+              {
+                "text": "Aprobó"
+              },
+              {
+                "source": "{{participants.approvers[0].name}}"
+              },
+              {
+                "source": "{{participants.approvers[0].jobTitle}}"
+              },
+              {
+                "source": "{{checklists.approval[0].id}}"
+              },
+              {
+                "source": "{{checklists.approval[0].date}}"
+              },
+              {
+                "source": "{{checklists.approval[0].status}}"
+              }
+            ]
+          },
+          {
+            "cells": [
+              {
+                "text": "Publicó"
+              },
+              {
+                "source": "{{participants.dcontrol.name}}"
+              },
+              {
+                "source": "{{participants.dcontrol.jobTitle}}"
+              },
+              {
+                "source": "{{checklists.publish.id}}"
+              },
+              {
+                "source": "{{checklists.publish.date}}"
+              },
+              {
+                "source": "{{checklists.publish.status}}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "signing_container",
+        "type": "signature_blocks",
+        "margin_top": 30,
+        "blocks": [
+          {
+            "id": "preparer_block",
+            "x": 0,
+            "y": 0,
+            "width": 130,
+            "rows": [
+              {
+                "type": "text",
+                "height": 12,
+                "text": "Elaborado por:",
+                "text_size": 9,
+                "align": "left",
+                "border_bottom": false
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "source": "{{participants.creator.name}}",
+                "text_size": 9,
+                "align": "right",
+                "border_top": false
+              },
+              {
+                "type": "columns",
+                "height": 13,
+                "columns": [
+                  {
+                    "width": 42,
+                    "text": "Fecha",
+                    "text_size": 9,
+                    "align": "left"
+                  },
+                  {
+                    "width": 88,
+                    "source": "{{checklists.creator.date}}",
+                    "text_size": 5,
+                    "align": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "text": "Firma:",
+                "text_size": 9,
+                "align": "left"
+              },
+              {
+                "type": "image",
+                "height": 40,
+                "source": "{{participants.creator.signature}}",
+                "align": "center"
+              }
+            ]
+          },
+          {
+            "id": "reviewer_block",
+            "x": 170,
+            "y": 0,
+            "width": 130,
+            "rows": [
+              {
+                "type": "text",
+                "height": 12,
+                "text": "Revisado por:",
+                "text_size": 9,
+                "align": "left",
+                "border_bottom": false
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "source": "{{participants.reviewers[0].name}}",
+                "text_size": 9,
+                "align": "right",
+                "border_top": false
+              },
+              {
+                "type": "columns",
+                "height": 13,
+                "columns": [
+                  {
+                    "width": 42,
+                    "text": "Fecha",
+                    "text_size": 9,
+                    "align": "left"
+                  },
+                  {
+                    "width": 88,
+                    "source": "{{checklists.review[0].date}}",
+                    "text_size": 5,
+                    "align": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "text": "Firma:",
+                "text_size": 9,
+                "align": "left"
+              },
+              {
+                "type": "image",
+                "height": 40,
+                "source": "{{participants.reviewers[0].signature}}",
+                "align": "center"
+              }
+            ]
+          },
+          {
+            "id": "qac_block",
+            "x": 340,
+            "y": 0,
+            "width": 130,
+            "rows": [
+              {
+                "type": "text",
+                "height": 12,
+                "text": "QAC:",
+                "text_size": 9,
+                "align": "left",
+                "border_bottom": false
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "source": "{{participants.qac.name}}",
+                "text_size": 9,
+                "align": "right",
+                "border_top": false
+              },
+              {
+                "type": "columns",
+                "height": 13,
+                "columns": [
+                  {
+                    "width": 42,
+                    "text": "Fecha",
+                    "text_size": 9,
+                    "align": "left"
+                  },
+                  {
+                    "width": 88,
+                    "source": "{{checklists.qac.date}}",
+                    "text_size": 5,
+                    "align": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "text": "Firma:",
+                "text_size": 9,
+                "align": "left"
+              },
+              {
+                "type": "image",
+                "height": 40,
+                "source": "{{participants.qac.signature}}",
+                "align": "center"
+              }
+            ]
+          },
+          {
+            "id": "approver_block",
+            "x": 84,
+            "y": 120,
+            "width": 130,
+            "rows": [
+              {
+                "type": "text",
+                "height": 12,
+                "text": "Aprobado por:",
+                "text_size": 9,
+                "align": "left",
+                "border_bottom": false
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "source": "{{participants.approvers[0].name}}",
+                "text_size": 9,
+                "align": "right",
+                "border_top": false
+              },
+              {
+                "type": "columns",
+                "height": 13,
+                "columns": [
+                  {
+                    "width": 42,
+                    "text": "Fecha",
+                    "text_size": 9,
+                    "align": "left"
+                  },
+                  {
+                    "width": 88,
+                    "source": "{{checklists.approval[0].date}}",
+                    "text_size": 5,
+                    "align": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "text": "Firma:",
+                "text_size": 9,
+                "align": "left"
+              },
+              {
+                "type": "image",
+                "height": 40,
+                "source": "{{participants.approvers[0].signature}}",
+                "align": "center"
+              }
+            ]
+          },
+          {
+            "id": "publisher_block",
+            "x": 255,
+            "y": 120,
+            "width": 130,
+            "rows": [
+              {
+                "type": "text",
+                "height": 12,
+                "text": "Publicado por:",
+                "text_size": 9,
+                "align": "left",
+                "border_bottom": false
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "source": "{{participants.dcontrol.name}}",
+                "text_size": 9,
+                "align": "right",
+                "border_top": false
+              },
+              {
+                "type": "columns",
+                "height": 13,
+                "columns": [
+                  {
+                    "width": 42,
+                    "text": "Fecha",
+                    "text_size": 9,
+                    "align": "left"
+                  },
+                  {
+                    "width": 88,
+                    "source": "{{checklists.publish.date}}",
+                    "text_size": 5,
+                    "align": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "height": 13,
+                "text": "Firma:",
+                "text_size": 9,
+                "align": "left"
+              },
+              {
+                "type": "image",
+                "height": 40,
+                "source": "{{participants.dcontrol.signature}}",
+                "align": "center"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "control_de_cambios",
+        "type": "dynamic_table",
+        "margin_top": 30,
+        "title": {
+          "text": "CONTROL DE CAMBIOS",
+          "height": 28,
+          "text_size": 11,
+          "align": "center"
+        },
+        "header": {
+          "height": 23,
+          "text_size": 9,
+          "align": "center",
+          "columns": [
+            {
+              "id": "version",
+              "text": "Versión",
+              "width": 77
+            },
+            {
+              "id": "date",
+              "text": "Fecha",
+              "width": 61
+            },
+            {
+              "id": "description",
+              "text": "Descripción revisión",
+              "width": 243
+            },
+            {
+              "id": "responsible",
+              "text": "Responsable",
+              "width": 90
+            }
+          ]
+        },
+        "row_template": {
+          "height": 17,
+          "text_size": 9,
+          "align": "left",
+          "cells": [
+            {
+              "source": "{{version}}"
+            },
+            {
+              "source": "{{date}}"
+            },
+            {
+              "source": "{{revisionDescription}}"
+            },
+            {
+              "source": "{{responsibleName}}"
+            }
+          ]
+        },
+        "data_source": "{{revision_history}}"
+      }
+    ]
+  }
+}
