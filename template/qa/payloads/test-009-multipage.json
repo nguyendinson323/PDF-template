@@ -1,0 +1,182 @@
+{
+  "document": {
+    "brand": {
+      "logoUrl": "https://passfy.com/assets/logo.png"
+    },
+    "code": "PAS-TEST-009",
+    "title": "Multi-Page Document Test - Comprehensive Header and Footer Validation Across Multiple Pages",
+    "semanticVersion": "v3.5.2",
+    "publicationDate": "2024-10-13",
+    "qr": {
+      "baseUrl": "https://qr.passfy.com/"
+    },
+    "security": {
+      "hashSha256": "f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8",
+      "tsaTime": "2024-10-13T15:45:30Z",
+      "tsaSerial": "TSA-2024-MULTIPAGE-009"
+    }
+  },
+  "context": {
+    "areaCode": "QA",
+    "areaName": "Quality Assurance",
+    "classificationName": "Internal Use Only",
+    "criticalityCode": "M",
+    "criticalityName": "Medium",
+    "typeCode": "TEST",
+    "typeName": "Test Document",
+    "currentPhase": "Published",
+    "statuscurrentPhase": "Active",
+    "correlativocurrentPhase": "009",
+    "destinationPhase": "Production",
+    "stagePhase": "Released"
+  },
+  "participants": {
+    "creator": {
+      "name": "Alice Johnson",
+      "jobTitle": "QA Engineer",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Bob Martinez",
+        "jobTitle": "Senior QA Lead",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Carol Williams",
+      "jobTitle": "Quality Assurance Coordinator",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "David Chen",
+        "jobTitle": "QA Director",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Emma Davis",
+      "jobTitle": "Document Control Specialist",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-009-001",
+      "date": "2024-10-01",
+      "status": "Completed"
+    },
+    "review": [
+      {
+        "id": "CL-009-002",
+        "date": "2024-10-03",
+        "status": "Completed"
+      }
+    ],
+    "qac": {
+      "id": "CL-009-003",
+      "date": "2024-10-05",
+      "status": "Completed"
+    },
+    "approval": [
+      {
+        "id": "CL-009-004",
+        "date": "2024-10-08",
+        "status": "Completed"
+      }
+    ],
+    "publish": {
+      "id": "CL-009-005",
+      "date": "2024-10-13",
+      "status": "Completed"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v1.0.0",
+      "date": "2024-01-15",
+      "revisionDescription": "Initial release of the multi-page test document. This version establishes the baseline for testing header and footer rendering across multiple pages. The document includes comprehensive test scenarios for validating PDF generation with dynamic content that spans several pages. Key features include proper header positioning at the top of each page, footer placement at the bottom with page numbers, and correct handling of content overflow.",
+      "responsibleName": "Alice Johnson"
+    },
+    {
+      "version": "v1.1.0",
+      "date": "2024-02-20",
+      "revisionDescription": "Added enhanced test cases for validating table rendering with dynamic row heights. This update introduces new test scenarios for handling long text content within table cells, ensuring proper text wrapping and vertical alignment. Additionally, improved the footer content to include comprehensive document metadata such as document code, version, classification, and SHA-256 hash truncation for display purposes.",
+      "responsibleName": "Bob Martinez"
+    },
+    {
+      "version": "v1.2.0",
+      "date": "2024-03-10",
+      "revisionDescription": "Implemented advanced multi-page overflow handling mechanisms. This version introduces sophisticated page break detection that considers bottom margins and footer placement. The update ensures that when content exceeds the available space on a page, a new page is automatically created with the full header rendered at the correct position (top of the page) and footer at the absolute bottom position regardless of margin settings.",
+      "responsibleName": "Carol Williams"
+    },
+    {
+      "version": "v2.0.0",
+      "date": "2024-04-25",
+      "revisionDescription": "Major refactoring of the PDF generation architecture. This release introduces a modular, context-based rendering system that improves code maintainability and extensibility. The refactoring separates concerns into distinct functional areas: header rendering, footer rendering, table rendering, and page overflow management. This architectural improvement enables easier debugging and future enhancements while maintaining backward compatibility with existing test payloads.",
+      "responsibleName": "David Chen"
+    },
+    {
+      "version": "v2.1.0",
+      "date": "2024-05-15",
+      "revisionDescription": "Enhanced footer rendering to support composite elements from HeaderFooter.json configuration. The footer now dynamically builds content from multiple element sources, including static text and template variables. This update implements proper handling of page number placeholders (v and h), SHA-256 hash truncation for display (last 8 characters), and intelligent text wrapping when footer content exceeds available width. The footer positioning uses absolute coordinates to ensure consistent placement across all pages.",
+      "responsibleName": "Emma Davis"
+    },
+    {
+      "version": "v2.2.0",
+      "date": "2024-06-20",
+      "revisionDescription": "Corrected critical issue where headers on continuation pages were rendered near the footer instead of at the top. The root cause was identified as improper Y-coordinate reset when creating new pages. The fix ensures that currentY is explicitly set to headerFooter.header.y_position + headerFooter.header.height before rendering the header on new pages, matching the coordinate system used on the first page. This guarantees consistent header placement across all pages regardless of page count.",
+      "responsibleName": "Alice Johnson"
+    },
+    {
+      "version": "v3.0.0",
+      "date": "2024-07-30",
+      "revisionDescription": "Complete implementation of dynamic table handling throughout the document. All tables (FIRMAS Y APROBACIONES, SIGNING CONTAINER, CONTROL DE CAMBIOS) now support dynamic row heights based on content length. Text wrapping is applied intelligently with proper vertical centering, and image columns automatically match the height of their sibling containers. The signature blocks use dynamic positioning with configurable spacing, and the approval table adapts to varying content lengths while maintaining visual consistency.",
+      "responsibleName": "Bob Martinez"
+    },
+    {
+      "version": "v3.1.0",
+      "date": "2024-08-18",
+      "revisionDescription": "Implemented comprehensive page overflow detection and handling for all major content sections. The system now checks available space before rendering large content blocks (tables, signature sections, revision history) and automatically creates new pages when necessary. Each new page receives the complete header structure with all nested columns and dynamic height calculations, ensuring visual consistency. The footer is rendered once at the end for all pages with correct page numbering (current page number and total page count).",
+      "responsibleName": "Carol Williams"
+    },
+    {
+      "version": "v3.2.0",
+      "date": "2024-09-05",
+      "revisionDescription": "Fixed footer duplication issue that occurred on multi-page documents. The problem was caused by rendering footers both during page overflow (in the addNewPage function) and again at the end of document generation. The solution removes footer rendering from the overflow handler and renders all footers in a single loop at the end, ensuring each page receives exactly one footer with correct page numbers. This approach also simplifies the code and improves performance by reducing redundant rendering operations.",
+      "responsibleName": "David Chen"
+    },
+    {
+      "version": "v3.3.0",
+      "date": "2024-09-25",
+      "revisionDescription": "Enhanced the footer content builder to properly handle all element types from the HeaderFooter.json configuration. The system now correctly processes both static text elements and dynamic source templates, replacing page number placeholders (v for current page, h for total pages) and truncating long hash values for optimal display. The footer text wrapping algorithm ensures that long composite footers are properly split across multiple lines while maintaining center alignment and consistent line spacing.",
+      "responsibleName": "Emma Davis"
+    },
+    {
+      "version": "v3.4.0",
+      "date": "2024-10-05",
+      "revisionDescription": "Optimized the header rendering function to eliminate code duplication. The renderFullCoverHeader function now handles all header rendering for both the first page and continuation pages, ensuring complete consistency in layout, borders, text positioning, and dynamic height calculations. This refactoring reduces maintenance burden and eliminates potential inconsistencies that could arise from maintaining separate header rendering logic for different pages.",
+      "responsibleName": "Alice Johnson"
+    },
+    {
+      "version": "v3.5.0",
+      "date": "2024-10-10",
+      "revisionDescription": "Added extensive validation and testing infrastructure for multi-page documents. This version includes comprehensive test payloads designed to stress-test the PDF generation system with extreme content lengths, multiple revisions, special characters, and edge cases. The testing framework validates that headers appear consistently at the top of each page, footers at the bottom with correct page numbers, and content flows naturally across page boundaries without overlap or truncation.",
+      "responsibleName": "Bob Martinez"
+    },
+    {
+      "version": "v3.5.1",
+      "date": "2024-10-12",
+      "revisionDescription": "Performance optimization pass focused on reducing PDF generation time for large documents. Implemented efficient caching of font metrics, optimized text wrapping algorithms to reduce redundant calculations, and streamlined the page overflow detection logic. These improvements result in approximately 40% faster generation times for documents exceeding 5 pages while maintaining identical output quality and visual fidelity.",
+      "responsibleName": "Carol Williams"
+    },
+    {
+      "version": "v3.5.2",
+      "date": "2024-10-13",
+      "revisionDescription": "Final validation and quality assurance pass. This release confirms that all header and footer functionality works correctly across documents ranging from single-page to 10+ pages. Verified proper handling of coordinate systems, absolute positioning for footers, dynamic positioning for headers, correct page number tracking, and appropriate spacing between all elements. The system is now production-ready for processing documents of any length with confidence in consistent, high-quality output.",
+      "responsibleName": "David Chen"
+    }
+  ]
+}
+
