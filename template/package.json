@@ -4,8 +4,7 @@
   "description": "Passfy Document Control - Template Pack for PDF generation",
   "private": true,
   "scripts": {
-    "create-cover": "node create-clean-cover.js",
-    "create-cover-pdfmake": "node cover.js",
+    "create-cover": "node create-cover.js",
     "generate-golden": "node generate-golden.js",
     "validate": "node validate-schemas.js",
     "test": "npm run validate && npm run generate-golden",
