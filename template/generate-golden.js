@@ -258,16 +258,92 @@ async function generateGoldenPdf(payloadFile) {
     const { width: pageWidth, height: pageHeight, margins } = headerFooter.page;
     const { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin } = margins;
     const usableWidth = pageWidth - leftMargin - rightMargin;
+    
+    // Calculate minimum Y position - content must stop before footer area
+    // Footer separator is at 84pt, so add padding above it
+    const footerTopY = headerFooter.footer.separator_line.y_position + 20; // 84 + 20 = 104pt
+    const minY = footerTopY;
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
-    const page = pdfDoc.addPage([pageWidth, pageHeight]);
-    const stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
     // Load fonts
     const fontPath = path.join(__dirname, headerFooter.fonts.regular);
     const fontBytes = fs.readFileSync(fontPath);
     const font = await pdfDoc.embedFont(fontBytes);
+    
+    // Helper function to check and handle page overflow
+    function checkPageOverflow(requiredHeight) {
+      if (currentY - requiredHeight < minY) {
+        // Render footer on current page before creating new one
+        renderFooter(page);
+        
+        // Add new page
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+        
+        // Render header on new page
+        renderHeader(page);
+        
+        // Reset currentY to below the header
+        currentY = pageHeight - topMargin - 50; // Leave space for simple header
+        return true; // Page was added
+      }
+      return false; // No overflow
+    }
+    
+    // Helper function to render header on continuation pages
+    function renderHeader(targetPage) {
+      const headerY = pageHeight - topMargin + 30;
+      const headerText = `${resolveTemplate('{{document.code}}', payload)} - ${resolveTemplate('{{document.title}}', payload)} - Page continuation`;
+      const headerSize = 9;
+      const headerWidth = font.widthOfTextAtSize(headerText, headerSize);
+      const headerX = (pageWidth - headerWidth) / 2;
+      
+      targetPage.drawText(headerText, {
+        x: headerX,
+        y: headerY,
+        size: headerSize,
+        font: font,
+        color: rgb(0.3, 0.3, 0.3)
+      });
+    }
+    
+    // Helper function to render footer
+    function renderFooter(targetPage) {
+      const footer = headerFooter.footer;
+      
+      // Footer separator line - absolute position, ignores bottom margin
+      if (footer.separator_line && footer.separator_line.enabled) {
+        const lineY = footer.separator_line.y_position;
+        const lineX1 = leftMargin + footer.separator_line.margin_left;
+        const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
+        
+        targetPage.drawLine({
+          start: { x: lineX1, y: lineY },
+          end: { x: lineX2, y: lineY },
+          color: rgb(0, 0, 1),
+          thickness: footer.separator_line.thickness
+        });
+      }
+      
+      // Footer text - absolute position from footer.y_position, ignores bottom margin
+      const footerY = footer.y_position;
+      const footerText = `${resolveTemplate('{{document.code}}', payload)} | ${resolveTemplate('{{document.title}}', payload)} | ${resolveTemplate('{{document.semanticVersion}}', payload)}`;
+      const footerSize = 8;
+      const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
+      const footerX = (pageWidth - footerWidth) / 2;
+      
+      targetPage.drawText(footerText, {
+        x: footerX,
+        y: footerY,
+        size: footerSize,
+        font: font,
+        color: rgb(0.3, 0.3, 0.3)
+      });
+    }
 
     console.log(`  ${colors.cyan}•${colors.reset} Page size: ${pageWidth}×${pageHeight} points`);
 
@@ -445,6 +521,10 @@ async function generateGoldenPdf(payloadFile) {
       const titleH = firmas.title.height;
       const headerH = firmas.header.height;
       const minRowH = firmas.rows_config.height;
+      
+      // Pre-calculate total table height to check for overflow
+      const estimatedTableHeight = titleH + headerH + (minRowH * firmas.rows.length * 1.5); // Estimate with 1.5x multiplier
+      checkPageOverflow(estimatedTableHeight);
 
       // Title
       strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -523,18 +603,91 @@ async function generateGoldenPdf(payloadFile) {
       console.log(`  ${colors.green}✓${colors.reset} Rendered ${firmas.rows.length} rows in approval table (dynamic heights)`);
     }
 
-    // == SIGNING CONTAINER ==
+    // == SIGNING CONTAINER WITH DYNAMIC HEIGHTS ==
     const signing = tables.find(t => t.id === 'signing_container');
     if (signing) {
       currentY -= (signing.margin_top || 0);
       const baseX = leftMargin;
+      
+      // Estimate signing container height for overflow check
+      const estimatedSigningHeight = 200; // Approximate height for signature blocks
+      checkPageOverflow(estimatedSigningHeight);
 
+      // Calculate dynamic heights for all blocks
+      const blockDynamicHeights = [];
+      
       for (const b of signing.blocks) {
-        const blockX = baseX + (b.x || 0);
-        let blockY = currentY - (b.y || 0);
-
+        const rowHeights = [];
+        
         for (const r of b.rows) {
-          const h = r.height;
+          let rowHeight = r.height;
+          
+          if (r.type === 'columns' && r.columns) {
+            // Check all columns for text that might need wrapping
+            for (const col of r.columns) {
+              const textContent = getTextContent(col, payload);
+              if (textContent && col.type !== 'image') {
+                const textSize = col.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, r.height);
+                rowHeight = Math.max(rowHeight, cellHeight);
+              }
+            }
+          } else if (r.type !== 'image') {
+            const textContent = getTextContent(r, payload);
+            if (textContent) {
+              const textSize = r.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, b.width, textSize, 4, 1.2, r.height);
+              rowHeight = Math.max(rowHeight, cellHeight);
+            }
+          }
+          
+          rowHeights.push(rowHeight);
+        }
+        
+        blockDynamicHeights.push(rowHeights);
+      }
+
+      // Group blocks by their y position (row of blocks)
+      const blockRows = new Map();
+      signing.blocks.forEach((b, idx) => {
+        const yPos = b.y || 0;
+        if (!blockRows.has(yPos)) {
+          blockRows.set(yPos, []);
+        }
+        blockRows.get(yPos).push({ block: b, idx: idx, heights: blockDynamicHeights[idx] });
+      });
+      
+      // Sort rows by y position
+      const sortedYPositions = Array.from(blockRows.keys()).sort((a, b) => a - b);
+      
+      // Calculate dynamic y offset for each row of blocks
+      const rowYOffsets = new Map();
+      let cumulativeOffset = 0;
+      const blockSpacing = 30; // Spacing between rows of blocks
+      
+      for (const yPos of sortedYPositions) {
+        rowYOffsets.set(yPos, cumulativeOffset);
+        
+        // Calculate max height for this row of blocks
+        const blocksInRow = blockRows.get(yPos);
+        const maxHeightInRow = Math.max(...blocksInRow.map(item => 
+          item.heights.reduce((sum, h) => sum + h, 0)
+        ));
+        
+        cumulativeOffset += maxHeightInRow + blockSpacing;
+      }
+
+      // Render blocks with dynamic positioning
+      for (let blockIdx = 0; blockIdx < signing.blocks.length; blockIdx++) {
+        const b = signing.blocks[blockIdx];
+        const rowHeights = blockDynamicHeights[blockIdx];
+        const blockX = baseX + (b.x || 0);
+        const dynamicYOffset = rowYOffsets.get(b.y || 0);
+        let blockY = currentY - dynamicYOffset;
+
+        for (let rowIdx = 0; rowIdx < b.rows.length; rowIdx++) {
+          const r = b.rows[rowIdx];
+          const h = rowHeights[rowIdx];
           const yBottom = blockY - h;
 
           if (r.type === 'columns' && r.columns) {
@@ -553,7 +706,7 @@ async function generateGoldenPdf(payloadFile) {
               const textContent = getTextContent(col, payload);
               if (textContent) {
                 const textSize = col.text_size || 9;
-                drawAlignedText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align);
+                drawMultilineText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align, 4, 1.2);
               }
               
               colX += colWidth;
@@ -564,7 +717,7 @@ async function generateGoldenPdf(payloadFile) {
             const textContent = getTextContent(r, payload);
             if (textContent && r.type !== 'image') {
               const textSize = r.text_size || 9;
-              drawAlignedText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align);
+              drawMultilineText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align, 4, 1.2);
             }
           }
 
@@ -572,13 +725,11 @@ async function generateGoldenPdf(payloadFile) {
         }
       }
 
-      const maxBlockHeight = Math.max(...signing.blocks.map(b => {
-        const totalHeight = b.rows.reduce((sum, r) => sum + r.height, 0);
-        return (b.y || 0) + totalHeight;
-      }));
+      // Calculate max block height using dynamic positioning
+      const maxBlockHeight = cumulativeOffset - blockSpacing; // Remove last spacing
       currentY -= maxBlockHeight;
 
-      console.log(`  ${colors.green}✓${colors.reset} Rendered ${signing.blocks.length} signature blocks`);
+      console.log(`  ${colors.green}✓${colors.reset} Rendered ${signing.blocks.length} signature blocks (dynamic heights)`);
     }
 
     // == CONTROL DE CAMBIOS ==
@@ -589,6 +740,12 @@ async function generateGoldenPdf(payloadFile) {
       const titleH = rev.title.height;
       const headerH = rev.header.height;
       const minRowH = rev.row_template.height;
+      
+      // Pre-calculate revision table height to check for overflow
+      if (payload.revision_history && payload.revision_history.length > 0) {
+        const estimatedRevTableHeight = titleH + headerH + (minRowH * payload.revision_history.length * 2); // Estimate with 2x multiplier for long descriptions
+        checkPageOverflow(estimatedRevTableHeight);
+      }
 
       // Title
       strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -691,21 +848,14 @@ async function generateGoldenPdf(payloadFile) {
     }
 
     // ---------------- FOOTER ----------------
-    const footer = headerFooter.footer;
-    if (footer.separator_line && footer.separator_line.enabled) {
-      const lineY = footer.separator_line.y_position;
-      const lineX1 = leftMargin + footer.separator_line.margin_left;
-      const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
-      
-      page.drawLine({
-        start: { x: lineX1, y: lineY },
-        end: { x: lineX2, y: lineY },
-        color: rgb(0, 0, 1),
-        thickness: footer.separator_line.thickness
-      });
+    // Render footer on all pages
+    const totalPages = pdfDoc.getPageCount();
+    for (let i = 0; i < totalPages; i++) {
+      const currentPage = pdfDoc.getPages()[i];
+      renderFooter(currentPage);
     }
 
-    console.log(`  ${colors.green}✓${colors.reset} Rendered footer`);
+    console.log(`  ${colors.green}✓${colors.reset} Rendered footer on ${totalPages} page(s)`);
 
     // Save the PDF
     const pdfBytes = await pdfDoc.save();

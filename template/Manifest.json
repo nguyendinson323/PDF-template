@@ -46,7 +46,7 @@
             {
               "id": "position",
               "text": "Cargo",
-              "width": 49
+              "width": 70
             },
             {
               "id": "checklist_id",
@@ -56,7 +56,7 @@
             {
               "id": "date",
               "text": "Fecha",
-              "width": 89
+              "width": 68
             },
             {
               "id": "status",
@@ -198,7 +198,7 @@
                 "type": "text",
                 "height": 12,
                 "text": "Elaborado por:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -217,13 +217,13 @@
                   {
                     "width": 42,
                     "text": "Fecha",
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left"
                   },
                   {
                     "width": 88,
                     "source": "{{checklists.creator.date}}",
-                    "text_size": 5,
+                    "text_size": 8,
                     "align": "center"
                   }
                 ]
@@ -232,7 +232,7 @@
                 "type": "text",
                 "height": 13,
                 "text": "Firma:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left"
               },
               {
@@ -253,7 +253,7 @@
                 "type": "text",
                 "height": 12,
                 "text": "Revisado por:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -272,13 +272,13 @@
                   {
                     "width": 42,
                     "text": "Fecha",
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left"
                   },
                   {
                     "width": 88,
                     "source": "{{checklists.review[0].date}}",
-                    "text_size": 5,
+                    "text_size": 8,
                     "align": "center"
                   }
                 ]
@@ -287,7 +287,7 @@
                 "type": "text",
                 "height": 13,
                 "text": "Firma:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left"
               },
               {
@@ -308,7 +308,7 @@
                 "type": "text",
                 "height": 12,
                 "text": "QAC:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -327,13 +327,13 @@
                   {
                     "width": 42,
                     "text": "Fecha",
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left"
                   },
                   {
                     "width": 88,
                     "source": "{{checklists.qac.date}}",
-                    "text_size": 5,
+                    "text_size": 8,
                     "align": "center"
                   }
                 ]
@@ -342,7 +342,7 @@
                 "type": "text",
                 "height": 13,
                 "text": "Firma:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left"
               },
               {
@@ -363,7 +363,7 @@
                 "type": "text",
                 "height": 12,
                 "text": "Aprobado por:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -382,13 +382,13 @@
                   {
                     "width": 42,
                     "text": "Fecha",
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left"
                   },
                   {
                     "width": 88,
                     "source": "{{checklists.approval[0].date}}",
-                    "text_size": 5,
+                    "text_size": 8,
                     "align": "center"
                   }
                 ]
@@ -397,7 +397,7 @@
                 "type": "text",
                 "height": 13,
                 "text": "Firma:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left"
               },
               {
@@ -418,7 +418,7 @@
                 "type": "text",
                 "height": 12,
                 "text": "Publicado por:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left",
                 "border_bottom": false
               },
@@ -437,13 +437,13 @@
                   {
                     "width": 42,
                     "text": "Fecha",
-                    "text_size": 9,
+                    "text_size": 7,
                     "align": "left"
                   },
                   {
                     "width": 88,
                     "source": "{{checklists.publish.date}}",
-                    "text_size": 5,
+                    "text_size": 8,
                     "align": "center"
                   }
                 ]
@@ -452,7 +452,7 @@
                 "type": "text",
                 "height": 13,
                 "text": "Firma:",
-                "text_size": 9,
+                "text_size": 7,
                 "align": "left"
               },
               {
@@ -504,7 +504,7 @@
         },
         "row_template": {
           "height": 17,
-          "text_size": 9,
+          "text_size": 7,
           "align": "left",
           "cells": [
             {

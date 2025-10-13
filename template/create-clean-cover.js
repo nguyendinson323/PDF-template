@@ -198,16 +198,92 @@ async function createCleanCover() {
   const { width: pageWidth, height: pageHeight, margins } = headerFooter.page;
   const { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin } = margins;
   const usableWidth = pageWidth - leftMargin - rightMargin;
+  
+  // Calculate minimum Y position - content must stop before footer area
+  // Footer separator is at 84pt, so add padding above it
+  const footerTopY = headerFooter.footer.separator_line.y_position + 20; // 84 + 20 = 104pt
+  const minY = footerTopY;
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
-  const page = pdfDoc.addPage([pageWidth, pageHeight]);
-  const stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
   // Load fonts
   const fontPath = path.join(__dirname, headerFooter.fonts.regular);
   const fontBytes = fs.readFileSync(fontPath);
   const font = await pdfDoc.embedFont(fontBytes);
+  
+  // Helper function to check and handle page overflow
+  function checkPageOverflow(requiredHeight) {
+    if (currentY - requiredHeight < minY) {
+      // Render footer on current page before creating new one
+      renderFooter(page);
+      
+      // Add new page
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+      
+      // Render header on new page
+      renderHeader(page);
+      
+      // Reset currentY to below the header
+      currentY = pageHeight - topMargin - 50; // Leave space for simple header
+      return true; // Page was added
+    }
+    return false; // No overflow
+  }
+  
+  // Helper function to render header on continuation pages
+  function renderHeader(targetPage) {
+    const headerY = pageHeight - topMargin + 30;
+    const headerText = 'Document Cover Template - Page continuation';
+    const headerSize = 9;
+    const headerWidth = font.widthOfTextAtSize(headerText, headerSize);
+    const headerX = (pageWidth - headerWidth) / 2;
+    
+    targetPage.drawText(headerText, {
+      x: headerX,
+      y: headerY,
+      size: headerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+  }
+  
+  // Helper function to render footer
+  function renderFooter(targetPage) {
+    const footer = headerFooter.footer;
+    
+    // Footer separator line - absolute position, ignores bottom margin
+    if (footer.separator_line && footer.separator_line.enabled) {
+      const lineY = footer.separator_line.y_position;
+      const lineX1 = leftMargin + footer.separator_line.margin_left;
+      const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
+      
+      targetPage.drawLine({
+        start: { x: lineX1, y: lineY },
+        end: { x: lineX2, y: lineY },
+        color: rgb(0, 0, 1),
+        thickness: footer.separator_line.thickness
+      });
+    }
+    
+    // Footer text - absolute position from footer.y_position, ignores bottom margin
+    const footerY = footer.y_position;
+    const footerText = 'Document Cover Template';
+    const footerSize = 8;
+    const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
+    const footerX = (pageWidth - footerWidth) / 2;
+    
+    targetPage.drawText(footerText, {
+      x: footerX,
+      y: footerY,
+      size: footerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+  }
 
   // ---------------- COVER HEADER: margin-based dynamic layout ----------------
   let currentY = headerFooter.header.y_position + headerFooter.header.height;
@@ -308,6 +384,10 @@ async function createCleanCover() {
     const titleH = firmas.title.height;
     const headerH = firmas.header.height;
     const rowH = firmas.rows_config.height;
+    
+    // Pre-calculate total table height to check for overflow
+    const estimatedTableHeight = titleH + headerH + (rowH * firmas.rows.length);
+    checkPageOverflow(estimatedTableHeight);
 
     // Title
     strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -359,18 +439,60 @@ async function createCleanCover() {
     currentY -= dataH;
   }
 
-  // == SIGNING CONTAINER ==
+  // == SIGNING CONTAINER WITH DYNAMIC HEIGHTS ==
   const signing = tables.find(t => t.id === 'signing_container');
   if (signing) {
     currentY -= (signing.margin_top || 0);
     const baseX = leftMargin;
+    
+    // Estimate signing container height for overflow check
+    const estimatedSigningHeight = 200; // Approximate height for signature blocks
+    checkPageOverflow(estimatedSigningHeight);
 
+    // Calculate dynamic heights for all blocks (placeholder mode - no payload data)
+    const blockDynamicHeights = [];
+    
     for (const b of signing.blocks) {
+      const rowHeights = [];
+      
+      for (const r of b.rows) {
+        let rowHeight = r.height;
+        
+        if (r.type === 'columns' && r.columns) {
+          // Check all columns for text that might need wrapping
+          for (const col of r.columns) {
+            const textContent = getTextContent(col);
+            if (textContent && col.type !== 'image') {
+              const textSize = col.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, col.width, textSize, 4, 1.2, r.height);
+              rowHeight = Math.max(rowHeight, cellHeight);
+            }
+          }
+        } else if (r.type !== 'image') {
+          const textContent = getTextContent(r);
+          if (textContent) {
+            const textSize = r.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, b.width, textSize, 4, 1.2, r.height);
+            rowHeight = Math.max(rowHeight, cellHeight);
+          }
+        }
+        
+        rowHeights.push(rowHeight);
+      }
+      
+      blockDynamicHeights.push(rowHeights);
+    }
+
+    // Render blocks with dynamic heights
+    for (let blockIdx = 0; blockIdx < signing.blocks.length; blockIdx++) {
+      const b = signing.blocks[blockIdx];
+      const rowHeights = blockDynamicHeights[blockIdx];
       const blockX = baseX + (b.x || 0);
       let blockY = currentY - (b.y || 0);
 
-      for (const r of b.rows) {
-        const h = r.height;
+      for (let rowIdx = 0; rowIdx < b.rows.length; rowIdx++) {
+        const r = b.rows[rowIdx];
+        const h = rowHeights[rowIdx];
         const yBottom = blockY - h;
 
         // Check row type
@@ -392,7 +514,7 @@ async function createCleanCover() {
             const textContent = getTextContent(col);
             if (textContent) {
               const textSize = col.text_size || 9;
-              drawAlignedText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align);
+              drawMultilineText(page, font, textContent, colX, yBottom, colWidth, h, textSize, col.align, 4, 1.2);
             }
             
             colX += colWidth;
@@ -405,7 +527,7 @@ async function createCleanCover() {
           const textContent = getTextContent(r);
           if (textContent && r.type !== 'image') {
             const textSize = r.text_size || 9;
-            drawAlignedText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align);
+            drawMultilineText(page, font, textContent, blockX, yBottom, b.width, h, textSize, r.align, 4, 1.2);
           }
         }
 
@@ -413,9 +535,9 @@ async function createCleanCover() {
       }
     }
 
-    // Calculate max height for next section
-    const maxBlockHeight = Math.max(...signing.blocks.map(b => {
-      const totalHeight = b.rows.reduce((sum, r) => sum + r.height, 0);
+    // Calculate max height using dynamic heights
+    const maxBlockHeight = Math.max(...signing.blocks.map((b, idx) => {
+      const totalHeight = blockDynamicHeights[idx].reduce((sum, h) => sum + h, 0);
       return (b.y || 0) + totalHeight;
     }));
     currentY -= maxBlockHeight;
@@ -429,6 +551,10 @@ async function createCleanCover() {
     const titleH = rev.title.height;
     const headerH = rev.header.height;
     const rowH = rev.row_template.height;
+    
+    // Pre-calculate revision table height to check for overflow
+    const estimatedRevTableHeight = titleH + headerH + rowH;
+    checkPageOverflow(estimatedRevTableHeight);
 
     // Title
     strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -462,19 +588,12 @@ async function createCleanCover() {
     }
   }
 
-  // ---------------- FOOTER (from HeaderFooter.json) ----------------
-  const footer = headerFooter.footer;
-  if (footer.separator_line && footer.separator_line.enabled) {
-    const lineY = footer.separator_line.y_position;
-    const lineX1 = leftMargin + footer.separator_line.margin_left;
-    const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
-    
-  page.drawLine({
-    start: { x: lineX1, y: lineY },
-    end: { x: lineX2, y: lineY },
-    color: rgb(0, 0, 1),
-      thickness: footer.separator_line.thickness
-  });
+  // ---------------- FOOTER ----------------
+  // Render footer on all pages
+  const totalPages = pdfDoc.getPageCount();
+  for (let i = 0; i < totalPages; i++) {
+    const currentPage = pdfDoc.getPages()[i];
+    renderFooter(currentPage);
   }
 
   // ---------------- SAVE ----------------

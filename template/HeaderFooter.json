@@ -308,8 +308,7 @@
     ]
   },
   "footer": {
-    "y_position": 38,
-    "height": 46,
+    "y_position": 70,
     "separator_line": {
       "enabled": true,
       "y_position": 84,
