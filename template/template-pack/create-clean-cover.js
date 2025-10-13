@@ -30,16 +30,13 @@ function strokeRect(stroke, x, y, w, h) {
 const BORDER_CONFIG = { color: rgb(0, 0, 0), thickness: 0 }; // hairline
 
 // ---------- load design files ----------
-const coverDesignPath = path.join(__dirname, '..', 'cover_design.json');
+const headerFooterPath = path.join(__dirname, 'HeaderFooter.json');
 const manifestPath = path.join(__dirname, 'Manifest.json');
-const coverDesign = JSON.parse(fs.readFileSync(coverDesignPath, 'utf8'));
+const headerFooter = JSON.parse(fs.readFileSync(headerFooterPath, 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 async function createCleanCover() {
-  console.log('🚀 Creating clean Cover.pdf (BORDERS ONLY - NO TEXT)...');
-  console.log(`📖 Loading design from: cover_design.json + Manifest.json`);
-
-  const { width: pageWidth, height: pageHeight, margins } = coverDesign.page;
+  const { width: pageWidth, height: pageHeight, margins } = headerFooter.page;
   const { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin } = margins;
   const usableWidth = pageWidth - leftMargin - rightMargin;
 
@@ -47,47 +44,89 @@ async function createCleanCover() {
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
   const stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
-  console.log('📐 Page setup:');
-  console.log(`  - Page: ${pageWidth}pt × ${pageHeight}pt`);
-  console.log(`  - Margins: top=${topMargin}pt, bottom=${bottomMargin}pt, left=${leftMargin}pt, right=${rightMargin}pt`);
-  console.log(`  - Usable width: ${usableWidth.toFixed(2)}pt`);
-
-  // ---------------- COVER HEADER: fields with absolute positioning ----------------
-  console.log('\n📋 Drawing Cover header (fields with absolute coordinates)...');
-
-  const headerFields = coverDesign.header.fields;
+  // ---------------- COVER HEADER: margin-based dynamic layout ----------------
+  let currentY = headerFooter.header.y_position + headerFooter.header.height;
   
-  for (const field of headerFields) {
-    const x1 = field.x1;
-    const y1 = field.y1;
-    const x2 = field.x2;
-    const y2 = field.y2;
-    const width = x2 - x1;
-    const height = y1 - y2;
-
-    // Determine which borders to draw
-    const drawTop = field.border_top !== false;
-    const drawBottom = field.border_bottom !== false;
-    const drawLeft = field.border_left !== false;
-    const drawRight = field.border_right !== false;
-
-    // Draw borders
-    if (drawTop) stroke(x1, y1, x2, y1);
-    if (drawBottom) stroke(x1, y2, x2, y2);
-    if (drawLeft) stroke(x1, y2, x1, y1);
-    if (drawRight) stroke(x2, y2, x2, y1);
+  for (const row of headerFooter.header.rows) {
+    const rowHeight = row.height;
+    let currentX = leftMargin;
+    
+    for (const col of row.columns) {
+      const colWidth = col.width;
+      
+      // Handle nested containers
+      if (col.type === 'container' && col.rows) {
+        let containerY = currentY;
+        for (const subRow of col.rows) {
+          const subHeight = subRow.height;
+          
+          if (subRow.type === 'columns' && subRow.columns) {
+            let subX = currentX;
+            for (const subCol of subRow.columns) {
+              const drawTop = subCol.border_top !== false;
+              const drawBottom = subCol.border_bottom !== false;
+              const drawLeft = subCol.border_left !== false;
+              const drawRight = subCol.border_right !== false;
+              
+              if (drawTop) stroke(subX, containerY, subX + subCol.width, containerY);
+              if (drawBottom) stroke(subX, containerY - subHeight, subX + subCol.width, containerY - subHeight);
+              if (drawLeft) stroke(subX, containerY - subHeight, subX, containerY);
+              if (drawRight) stroke(subX + subCol.width, containerY - subHeight, subX + subCol.width, containerY);
+              
+              subX += subCol.width;
+            }
+          } else {
+            const drawTop = subRow.border_top !== false;
+            const drawBottom = subRow.border_bottom !== false;
+            const drawLeft = subRow.border_left !== false;
+            const drawRight = subRow.border_right !== false;
+            
+            if (drawTop) stroke(currentX, containerY, currentX + colWidth, containerY);
+            if (drawBottom) stroke(currentX, containerY - subHeight, currentX + colWidth, containerY - subHeight);
+            if (drawLeft) stroke(currentX, containerY - subHeight, currentX, containerY);
+            if (drawRight) stroke(currentX + colWidth, containerY - subHeight, currentX + colWidth, containerY);
+          }
+          
+          containerY -= subHeight;
+        }
+      } else if (col.type === 'columns' && col.columns) {
+        let subX = currentX;
+        for (const subCol of col.columns) {
+          const drawTop = subCol.border_top !== false;
+          const drawBottom = subCol.border_bottom !== false;
+          const drawLeft = subCol.border_left !== false;
+          const drawRight = subCol.border_right !== false;
+          
+          if (drawTop) stroke(subX, currentY, subX + subCol.width, currentY);
+          if (drawBottom) stroke(subX, currentY - rowHeight, subX + subCol.width, currentY - rowHeight);
+          if (drawLeft) stroke(subX, currentY - rowHeight, subX, currentY);
+          if (drawRight) stroke(subX + subCol.width, currentY - rowHeight, subX + subCol.width, currentY);
+          
+          subX += subCol.width;
+        }
+      } else {
+        // Regular column
+        const drawTop = col.border_top !== false;
+        const drawBottom = col.border_bottom !== false;
+        const drawLeft = col.border_left !== false;
+        const drawRight = col.border_right !== false;
+        
+        if (drawTop) stroke(currentX, currentY, currentX + colWidth, currentY);
+        if (drawBottom) stroke(currentX, currentY - rowHeight, currentX + colWidth, currentY - rowHeight);
+        if (drawLeft) stroke(currentX, currentY - rowHeight, currentX, currentY);
+        if (drawRight) stroke(currentX + colWidth, currentY - rowHeight, currentX + colWidth, currentY);
+      }
+      
+      currentX += colWidth;
+    }
+    
+    currentY -= rowHeight;
   }
-
-  console.log(`  ✅ Cover header complete (${headerFields.length} fields with absolute positioning)`);
-
-  // Calculate currentY position for content tables (below header region)
-  let currentY = coverDesign.header.region.y;
 
   // ---------------- CONTENT TABLES (from Manifest.json) ----------------
   const tables = manifest.content?.tables || [];
 
   // == FIRMAS Y APROBACIONES Table ==
-  console.log('\n📋 Drawing FIRMAS Y APROBACIONES table borders...');
   const firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
   if (firmas) {
     currentY -= (firmas.margin_top || 0);
@@ -125,12 +164,9 @@ async function createCleanCover() {
       }
     }
     currentY -= dataH;
-
-    console.log(`  ✅ FIRMAS Y APROBACIONES borders complete (title + header + ${firmas.rows.length} rows)`);
   }
 
   // == SIGNING CONTAINER ==
-  console.log('\n✍️  Drawing Signing blocks borders...');
   const signing = tables.find(t => t.id === 'signing_container');
   if (signing) {
     currentY -= (signing.margin_top || 0);
@@ -179,12 +215,9 @@ async function createCleanCover() {
       return (b.y || 0) + totalHeight;
     }));
     currentY -= maxBlockHeight;
-
-    console.log(`  ✅ Signing blocks borders complete (${signing.blocks.length} blocks)`);
   }
 
   // == CONTROL DE CAMBIOS ==
-  console.log('\n📝 Drawing CONTROL DE CAMBIOS table borders...');
   const rev = tables.find(t => t.id === 'control_de_cambios');
   if (rev) {
     currentY -= (rev.margin_top || 0);
@@ -217,37 +250,27 @@ async function createCleanCover() {
         stroke(accX, currentY - rowH, accX, currentY);
       }
     }
-
-    console.log(`  ✅ CONTROL DE CAMBIOS borders complete (title + header + 1 template row)`);
   }
 
-  // ---------------- FOOTER (from cover_design.json) ----------------
-  console.log('\n📋 Drawing Footer...');
-
-  // Footer separator line (blue)
-  const footer = coverDesign.footer;
-  if (footer.separator_line) {
+  // ---------------- FOOTER (from HeaderFooter.json) ----------------
+  const footer = headerFooter.footer;
+  if (footer.separator_line && footer.separator_line.enabled) {
+    const lineY = footer.separator_line.y_position;
+    const lineX1 = leftMargin + footer.separator_line.margin_left;
+    const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
+    
     page.drawLine({
-      start: { x: footer.separator_line.x1, y: footer.separator_line.y1 },
-      end: { x: footer.separator_line.x2, y: footer.separator_line.y2 },
+      start: { x: lineX1, y: lineY },
+      end: { x: lineX2, y: lineY },
       color: rgb(0, 0, 1),
       thickness: footer.separator_line.thickness
     });
   }
 
-  console.log(`  ✅ Footer separator line complete`);
-
   // ---------------- SAVE ----------------
   const pdfBytes = await pdfDoc.save();
   const outPath = path.join(__dirname, 'Cover.pdf');
   fs.writeFileSync(outPath, pdfBytes);
-
-  console.log('\n✅ Cover.pdf created successfully (BORDERS ONLY - NO TEXT)!');
-  console.log(`   📄 Location: ${outPath}`);
-  console.log(`   📦 Size: ${(pdfBytes.length / 1024).toFixed(2)} KB`);
-  console.log('\n⚠️  IMPORTANT: This PDF contains ONLY borders and lines.');
-  console.log('   Header/Footer design from: cover_design.json');
-  console.log('   Body content tables from: Manifest.json');
 }
 
 createCleanCover().catch(e => { console.error('❌ Error creating cover:', e); process.exit(1); });

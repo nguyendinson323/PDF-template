@@ -21,7 +21,7 @@
       {
         "id": "firmas_y_aprobaciones",
         "type": "fixed_table",
-        "margin_top": 20,
+        "margin_top": 30,
         "title": {
           "text": "FIRMAS Y APROBACIONES",
           "height": 28,
