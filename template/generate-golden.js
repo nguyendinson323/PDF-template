@@ -847,13 +847,27 @@ async function generateGoldenPdf(payloadFile) {
     const renderHeader = createPageHeaderRenderer({ pageHeight, topMargin, pageWidth, font, payload });
     const renderFooter = createPageFooterRenderer({ pageWidth, leftMargin, rightMargin, font, payload, headerFooter, pdfDoc });
     
+    let currentY = headerFooter.header.y_position + headerFooter.header.height;
+    
+    // Build context for rendering functions - must be defined before addNewPage
+    const buildContext = () => ({
+      page, font, stroke, payload, headerFooter, manifest,
+      pageWidth, pageHeight, leftMargin, rightMargin, usableWidth,
+      topMargin, bottomMargin, minY,
+      currentY
+    });
+    
     // Centralized page overflow handler
     function addNewPage() {
       // Don't render footer here - we'll render all footers at the end with correct page numbers
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
-      renderHeader(page);
-      return pageHeight - topMargin - 50;
+      
+      // Render full cover header on new page at the same position as first page
+      // Reset currentY to TOP of page before rendering header
+      currentY = headerFooter.header.y_position + headerFooter.header.height;
+      const newPageY = renderCoverHeader(buildContext());
+      return newPageY;
     }
     
     function ensureSpace(requiredHeight) {
@@ -861,16 +875,6 @@ async function generateGoldenPdf(payloadFile) {
         currentY = addNewPage();
       }
     }
-
-    let currentY = headerFooter.header.y_position + headerFooter.header.height;
-    
-    // Build context for rendering functions
-    const buildContext = () => ({
-      page, font, stroke, payload, headerFooter, manifest,
-      pageWidth, pageHeight, leftMargin, rightMargin, usableWidth,
-      topMargin, bottomMargin, minY,
-      currentY
-    });
 
     // Render cover header
     currentY = renderCoverHeader(buildContext());
