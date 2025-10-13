@@ -2,8 +2,18 @@ const Ajv = require('ajv');
 const fs = require('fs');
 const path = require('path');
 
-// ANSI color codes for terminal output
-const colors = {
+// Check if running in Windows CMD (no color support)
+const isWindowsCmd = process.platform === 'win32' && !process.env.WT_SESSION;
+
+// Color codes - disabled for Windows CMD
+const colors = isWindowsCmd ? {
+  reset: '',
+  green: '',
+  red: '',
+  yellow: '',
+  blue: '',
+  cyan: ''
+} : {
   reset: '\x1b[0m',
   green: '\x1b[32m',
   red: '\x1b[31m',
@@ -13,7 +23,7 @@ const colors = {
 };
 
 console.log(`${colors.cyan}======================================${colors.reset}`);
-console.log(`${colors.cyan}  Passfy Template Pack Validator${colors.reset}`);
+console.log(`${colors.cyan}  Template Pack Validator${colors.reset}`);
 console.log(`${colors.cyan}======================================${colors.reset}\n`);
 
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -129,11 +139,72 @@ function validateTestPayloads() {
         printError(`${file}: Missing required fields: ${missingFields.join(', ')}`);
         allValid = false;
       } else {
+        // Deep validation
+        if (!data.document.code) {
+          printWarning(`${file}: Missing document.code`);
+        }
+        if (!data.document.title) {
+          printWarning(`${file}: Missing document.title`);
+        }
+        if (!data.document.semanticVersion) {
+          printWarning(`${file}: Missing document.semanticVersion`);
+        }
+        if (!data.revision_history || data.revision_history.length === 0) {
+          printWarning(`${file}: revision_history is empty`);
+        }
+        
         printSuccess(`${file} has valid structure`);
       }
     } catch (error) {
       printError(`${file}: ${error.message}`);
       allValid = false;
+    }
+  });
+
+  return allValid;
+}
+
+// Check golden PDF files
+function checkGoldenPDFs() {
+  printInfo('Checking golden PDF files...');
+
+  const goldenDir = path.join(__dirname, 'qa', 'golden');
+  const payloadsDir = path.join(__dirname, 'qa', 'payloads');
+
+  if (!fs.existsSync(goldenDir)) {
+    printError(`Golden directory not found: ${goldenDir}`);
+    return false;
+  }
+
+  if (!fs.existsSync(payloadsDir)) {
+    printError(`Payloads directory not found: ${payloadsDir}`);
+    return false;
+  }
+
+  const goldenFiles = fs.readdirSync(goldenDir).filter(f => f.endsWith('.pdf'));
+  const payloadFiles = fs.readdirSync(payloadsDir).filter(f => f.endsWith('.json'));
+
+  printInfo(`Found ${goldenFiles.length} golden PDF files`);
+  printInfo(`Found ${payloadFiles.length} payload files`);
+
+  let allValid = true;
+
+  // Check if each payload has a corresponding golden PDF
+  payloadFiles.forEach(payloadFile => {
+    const baseName = payloadFile.replace('.json', '');
+    const expectedPdf = `${baseName}.pdf`;
+    
+    if (goldenFiles.includes(expectedPdf)) {
+      const pdfPath = path.join(goldenDir, expectedPdf);
+      const stats = fs.statSync(pdfPath);
+      
+      if (stats.size < 1000) {
+        printWarning(`${expectedPdf}: File seems too small (${stats.size} bytes)`);
+      } else {
+        printSuccess(`${expectedPdf} exists (${(stats.size / 1024).toFixed(2)} KB)`);
+      }
+    } else {
+      printWarning(`Missing golden PDF for ${payloadFile}: ${expectedPdf}`);
     }
   });
 
@@ -175,7 +246,9 @@ function checkFonts() {
 console.log(`${colors.blue}1. Core Template Files${colors.reset}`);
 console.log('─'.repeat(40));
 checkFileExists(path.join(__dirname, 'Cover.pdf'), 'Cover.pdf');
-checkFileExists(path.join(__dirname, 'create-clean-cover.js'), 'create-clean-cover.js');
+checkFileExists(path.join(__dirname, 'create-cover.js'), 'create-cover.js');
+checkFileExists(path.join(__dirname, 'generate-golden.js'), 'generate-golden.js');
+checkFileExists(path.join(__dirname, 'var_cover.json'), 'var_cover.json');
 console.log();
 
 console.log(`${colors.blue}2. Font Files${colors.reset}`);
@@ -204,15 +277,25 @@ console.log('─'.repeat(40));
 validateTestPayloads();
 console.log();
 
-console.log(`${colors.blue}5. Directory Structure${colors.reset}`);
+console.log(`${colors.blue}5. Golden PDF Files${colors.reset}`);
+console.log('─'.repeat(40));
+checkGoldenPDFs();
+console.log();
+
+console.log(`${colors.blue}6. Directory Structure${colors.reset}`);
 console.log('─'.repeat(40));
 checkFileExists(path.join(__dirname, 'qa'), 'qa/ directory');
 checkFileExists(path.join(__dirname, 'qa', 'payloads'), 'qa/payloads/ directory');
 checkFileExists(path.join(__dirname, 'qa', 'golden'), 'qa/golden/ directory');
-checkFileExists(path.join(__dirname, 'qa', 'overlay-instructions.md'), 'qa/overlay-instructions.md');
 checkFileExists(path.join(__dirname, 'schema'), 'schema/ directory');
 checkFileExists(path.join(__dirname, 'fonts'), 'fonts/ directory');
+console.log();
+
+console.log(`${colors.blue}7. Documentation Files${colors.reset}`);
+console.log('─'.repeat(40));
 checkFileExists(path.join(__dirname, 'README.md'), 'README.md');
+checkFileExists(path.join(__dirname, 'API_REFERENCE.md'), 'API_REFERENCE.md');
+checkFileExists(path.join(__dirname, 'qa', 'overlay-instructions.md'), 'qa/overlay-instructions.md');
 console.log();
 
 console.log(`${colors.cyan}======================================${colors.reset}`);

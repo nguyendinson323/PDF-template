@@ -4,7 +4,7 @@
   "title": "Header/Footer Configuration Schema",
   "description": "Defines header and footer layout for body pages",
   "type": "object",
-  "required": ["version", "page", "fonts", "header"],
+  "required": ["version", "page", "fonts", "header", "footer"],
   "properties": {
     "$schema": {
       "type": "string"
@@ -20,18 +20,24 @@
       "properties": {
         "width": {
           "type": "number",
-          "minimum": 0,
-          "description": "Page width in specified unit"
+          "minimum": 0
         },
         "height": {
           "type": "number",
-          "minimum": 0,
-          "description": "Page height in specified unit"
+          "minimum": 0
         },
         "unit": {
           "type": "string",
-          "enum": ["point", "inch", "mm"],
-          "description": "Unit of measurement"
+          "enum": ["point", "inch", "mm"]
+        },
+        "margins": {
+          "type": "object",
+          "properties": {
+            "top": { "type": "number" },
+            "bottom": { "type": "number" },
+            "left": { "type": "number" },
+            "right": { "type": "number" }
+          }
         }
       }
     },
@@ -40,131 +46,38 @@
       "required": ["regular", "bold"],
       "properties": {
         "regular": {
-          "type": "string",
-          "description": "Path to regular font file"
+          "type": "string"
         },
         "bold": {
-          "type": "string",
-          "description": "Path to bold font file"
+          "type": "string"
         }
       }
     },
     "header": {
       "type": "object",
-      "required": ["enabled", "height", "position", "content"],
+      "required": ["y_position", "height", "rows"],
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable/disable header"
+        "y_position": {
+          "type": "number"
         },
         "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Header height"
+          "type": "number"
         },
-        "position": {
-          "type": "object",
-          "required": ["x", "y"],
-          "properties": {
-            "x": {
-              "type": "number",
-              "description": "X coordinate"
-            },
-            "y": {
-              "type": "number",
-              "description": "Y coordinate"
-            },
-            "width": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Header width"
-            },
-            "height": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Header height"
-            }
-          }
-        },
-        "content": {
-          "type": "object",
-          "required": ["type", "elements", "style"],
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["simple", "composite"],
-              "description": "Content composition type"
-            },
-            "elements": {
-              "type": "array",
-              "description": "Content elements",
-              "items": {
-                "type": "object",
-                "required": ["text"],
-                "properties": {
-                  "text": {
-                    "type": "string",
-                    "description": "Text template"
-                  },
-                  "separator": {
-                    "type": "string",
-                    "description": "Separator after this element"
-                  }
-                }
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "height": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "type": "string" }
+                ]
+              },
+              "columns": {
+                "type": "array",
+                "items": { "type": "object" }
               }
-            },
-            "style": {
-              "type": "object",
-              "properties": {
-                "font": {
-                  "type": "string",
-                  "enum": ["regular", "bold"],
-                  "description": "Font weight"
-                },
-                "size": {
-                  "type": "number",
-                  "minimum": 1,
-                  "description": "Font size in points"
-                },
-                "align": {
-                  "type": "string",
-                  "enum": ["left", "center", "right"],
-                  "description": "Text alignment"
-                },
-                "wrap": {
-                  "type": "boolean",
-                  "description": "Enable text wrapping"
-                },
-                "color": {
-                  "type": "string",
-                  "pattern": "^#[0-9A-Fa-f]{6}$",
-                  "description": "Text color in hex format"
-                }
-              }
-            }
-          }
-        },
-        "border": {
-          "type": "object",
-          "description": "Border configuration",
-          "properties": {
-            "top": {
-              "type": "boolean",
-              "description": "Show top border"
-            },
-            "bottom": {
-              "type": "boolean",
-              "description": "Show bottom border"
-            },
-            "width": {
-              "type": "number",
-              "minimum": 0,
-              "description": "Border width"
-            },
-            "color": {
-              "type": "string",
-              "pattern": "^#[0-9A-Fa-f]{6}$",
-              "description": "Border color in hex format"
             }
           }
         }
@@ -172,28 +85,35 @@
     },
     "footer": {
       "type": "object",
-      "required": ["enabled"],
+      "required": ["y_position", "separator_line", "content"],
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable/disable footer"
+        "y_position": {
+          "type": "number"
         },
-        "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Footer height"
-        },
-        "position": {
+        "separator_line": {
           "type": "object",
-          "description": "Footer position"
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "y_position": { "type": "number" },
+            "margin_left": { "type": "number" },
+            "margin_right": { "type": "number" },
+            "color": { 
+              "oneOf": [
+                { "type": "string" },
+                { "type": "object" }
+              ]
+            },
+            "thickness": { "type": "number" }
+          }
         },
         "content": {
           "type": "object",
-          "description": "Footer content"
-        },
-        "border": {
-          "type": "object",
-          "description": "Footer border configuration"
+          "properties": {
+            "elements": {
+              "type": "array",
+              "items": { "type": "object" }
+            }
+          }
         }
       }
     }
