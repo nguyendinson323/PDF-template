@@ -45,16 +45,21 @@ function getTextContent(field) {
   return null;
 }
 
-function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left') {
+function drawAlignedText(page, font, text, x, yBottom, width, height, size, align = 'left', xMargin = 5) {
   const textWidth = font.widthOfTextAtSize(text, size);
   let textX;
   
+  // Apply horizontal margins and alignment
   if (align === 'center') {
-    textX = x + (width - textWidth) / 2;
+    // Center the text, but respect margins (shifts center point)
+    const availableWidth = width - 2 * xMargin;
+    textX = x + xMargin + (availableWidth - textWidth) / 2;
   } else if (align === 'right') {
-    textX = x + width - textWidth - 2;
+    // Align to right with margin from right edge
+    textX = x + width - xMargin - textWidth;
   } else {
-    textX = x + 2;
+    // Align to left with margin from left edge
+    textX = x + xMargin;
   }
   
   // Vertical centering: account for baseline positioning
@@ -107,7 +112,15 @@ async function createCleanCover() {
   let currentY = headerFooter.header.y_position + headerFooter.header.height;
   
   for (const row of headerFooter.header.rows) {
-    const rowHeight = row.height;
+    // Calculate row height - if "auto", sum heights from container column
+    let rowHeight = row.height;
+    if (rowHeight === "auto") {
+      // Find container column and sum its rows' heights
+      const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
+      if (containerCol) {
+        rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
+      }
+    }
     let currentX = leftMargin;
     
     for (const col of row.columns) {
@@ -188,7 +201,7 @@ async function createCleanCover() {
     const tableX = leftMargin;
     const titleH = firmas.title.height;
     const headerH = firmas.header.height;
-    const rowH = firmas.rows[0].height;
+    const rowH = firmas.rows_config.height;
 
     // Title
     strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
@@ -225,7 +238,7 @@ async function createCleanCover() {
         const colWidth = firmas.header.columns[j].width;
         const textContent = getTextContent(cell);
         if (textContent) {
-          drawAlignedText(page, font, textContent, cellX, currentY - (i * rowH) - rowH, colWidth, rowH, firmas.rows[i].text_size, 'left');
+          drawAlignedText(page, font, textContent, cellX, currentY - (i * rowH) - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align);
         }
         cellX += colWidth;
       }

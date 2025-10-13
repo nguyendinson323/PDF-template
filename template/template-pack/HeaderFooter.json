@@ -21,7 +21,7 @@
     "height": 100,
     "rows": [
       {
-        "height": 57,
+        "height": "auto",
         "columns": [
           {
             "id": "company_logo",
