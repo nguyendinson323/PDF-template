@@ -402,8 +402,8 @@ function renderCoverHeader(context) {
 // ==================================================================================
 
 function renderApprovalTable(context) {
-  const { page, font, stroke, payload, leftMargin, usableWidth, firmas } = context;
-  let { currentY } = context;
+  const { font, payload, leftMargin, usableWidth, firmas, pdfDoc, headerFooter, manifest, pageWidth, pageHeight, topMargin, bottomMargin, minY } = context;
+  let { currentY, page, stroke } = context;
   
   currentY -= (firmas.margin_top || 0);
   const tableX = leftMargin;
@@ -432,11 +432,11 @@ function renderApprovalTable(context) {
   }
   currentY -= headerH;
 
-  // Calculate row heights
-  const rowHeights = [];
+  // Render rows with overflow detection
   for (let i = 0; i < firmas.rows.length; i++) {
     let maxHeight = minRowH;
     
+    // Calculate this row's height
     for (let j = 0; j < firmas.rows[i].cells.length; j++) {
       const cell = firmas.rows[i].cells[j];
       const colWidth = firmas.header.columns[j].width;
@@ -448,42 +448,69 @@ function renderApprovalTable(context) {
       }
     }
     
-    rowHeights.push(maxHeight);
-  }
-  
-  const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
-  strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
-  
-  let rowY = currentY;
-  for (let i = 0; i < firmas.rows.length; i++) {
-    const rowH = rowHeights[i];
-    
-    if (i > 0) {
-      stroke(tableX, rowY, tableX + usableWidth, rowY);
+    // Check if row fits on current page
+    if (currentY - maxHeight < minY) {
+      // Row doesn't fit - create new page
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+      
+      // Render document header on new page
+      currentY = headerFooter.header.y_position + headerFooter.header.height;
+      currentY = renderCoverHeader({ ...context, page, stroke, currentY });
+      
+      // Apply table margin_top on new page
+      currentY -= (firmas.margin_top || 0);
+      
+      // Re-render table title on new page (exactly like first page)
+      strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+      if (firmas.title.text) {
+        drawAlignedText(page, font, firmas.title.text, tableX, currentY - titleH, usableWidth, titleH, firmas.title.text_size, 'center');
+      }
+      currentY -= titleH;
+      
+      // Re-render table header on new page (exactly like first page)
+      strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+      let accX = tableX;
+      for (const col of firmas.header.columns) {
+        if (col.text) {
+          drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, firmas.header.text_size, 'center');
+        }
+        accX += col.width;
+        if (round2(accX) < round2(tableX + usableWidth)) {
+          stroke(accX, currentY - headerH, accX, currentY);
+        }
+      }
+      currentY -= headerH;
     }
     
+    // Draw row border
+    strokeRect(stroke, tableX, currentY - maxHeight, usableWidth, maxHeight);
+    
+    // Draw horizontal separator (except first row)
+    if (i > 0) {
+      stroke(tableX, currentY, tableX + usableWidth, currentY);
+    }
+    
+    // Draw cells
     let cellX = tableX;
     for (let j = 0; j < firmas.rows[i].cells.length; j++) {
       const cell = firmas.rows[i].cells[j];
       const colWidth = firmas.header.columns[j].width;
       const textContent = getTextContent(cell, payload);
       if (textContent) {
-        drawMultilineText(page, font, textContent, cellX, rowY - rowH, colWidth, rowH, firmas.rows_config.text_size, firmas.rows_config.align);
+        drawMultilineText(page, font, textContent, cellX, currentY - maxHeight, colWidth, maxHeight, firmas.rows_config.text_size, firmas.rows_config.align);
       }
+      
+      // Draw vertical separator
+      if (j < firmas.rows[i].cells.length - 1) {
+        stroke(cellX + colWidth, currentY, cellX + colWidth, currentY - maxHeight);
+      }
+      
       cellX += colWidth;
     }
     
-    rowY -= rowH;
+    currentY -= maxHeight;
   }
-  
-  accX = tableX;
-  for (const col of firmas.header.columns) {
-    accX += col.width;
-    if (round2(accX) < round2(tableX + usableWidth)) {
-      stroke(accX, currentY - dataH, accX, currentY);
-    }
-  }
-  currentY -= dataH;
 
   return currentY;
 }
@@ -617,8 +644,8 @@ function renderSignatureBlocks(context) {
 // ==================================================================================
 
 function renderRevisionTable(context) {
-  const { page, font, stroke, payload, leftMargin, usableWidth, rev } = context;
-  let { currentY } = context;
+  const { font, payload, leftMargin, usableWidth, rev, pdfDoc, headerFooter, manifest, pageWidth, pageHeight, topMargin, bottomMargin, minY } = context;
+  let { currentY, page, stroke } = context;
   
   currentY -= (rev.margin_top || 0);
   const tableX = leftMargin;
@@ -647,13 +674,13 @@ function renderRevisionTable(context) {
   }
   currentY -= headerH;
 
-  // Dynamic rows
+  // Render rows with overflow detection
   if (payload.revision_history && payload.revision_history.length > 0) {
-    const rowHeights = [];
     for (let i = 0; i < payload.revision_history.length; i++) {
       const revisionEntry = payload.revision_history[i];
       let maxHeight = minRowH;
       
+      // Calculate this row's height
       for (let j = 0; j < rev.row_template.cells.length; j++) {
         const cellTemplate = rev.row_template.cells[j];
         const colWidth = rev.header.columns[j].width;
@@ -665,46 +692,70 @@ function renderRevisionTable(context) {
         }
       }
       
-      rowHeights.push(maxHeight);
-    }
-    
-    const dataH = rowHeights.reduce((sum, h) => sum + h, 0);
-    strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
-    
-    let rowY = currentY;
-    for (let i = 0; i < payload.revision_history.length; i++) {
-      const rowH = rowHeights[i];
-      
-      if (i > 0) {
-        stroke(tableX, rowY, tableX + usableWidth, rowY);
+      // Check if row fits on current page
+      if (currentY - maxHeight < minY) {
+        // Row doesn't fit - create new page
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
+        
+        // Render document header on new page
+        currentY = headerFooter.header.y_position + headerFooter.header.height;
+        currentY = renderCoverHeader({ ...context, page, stroke, currentY });
+        
+        // Apply table margin_top on new page
+        currentY -= (rev.margin_top || 0);
+        
+        // Re-render table title on new page (exactly like first page)
+        strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+        if (rev.title.text) {
+          drawAlignedText(page, font, rev.title.text, tableX, currentY - titleH, usableWidth, titleH, rev.title.text_size, 'center');
+        }
+        currentY -= titleH;
+        
+        // Re-render table header on new page (exactly like first page)
+        strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+        let accX = tableX;
+        for (const col of rev.header.columns) {
+          if (col.text) {
+            drawAlignedText(page, font, col.text, accX, currentY - headerH, col.width, headerH, rev.header.text_size, 'center');
+          }
+          accX += col.width;
+          if (round2(accX) < round2(tableX + usableWidth)) {
+            stroke(accX, currentY - headerH, accX, currentY);
+          }
+        }
+        currentY -= headerH;
       }
       
-      let cellX = tableX;
-      const revisionEntry = payload.revision_history[i];
+      // Draw row border
+      strokeRect(stroke, tableX, currentY - maxHeight, usableWidth, maxHeight);
       
+      // Draw horizontal separator (except first row)
+      if (i > 0) {
+        stroke(tableX, currentY, tableX + usableWidth, currentY);
+      }
+      
+      // Draw cells
+      let cellX = tableX;
       for (let j = 0; j < rev.row_template.cells.length; j++) {
         const cellTemplate = rev.row_template.cells[j];
         const colWidth = rev.header.columns[j].width;
         const value = resolveTemplate(cellTemplate.source, revisionEntry);
         
         if (value) {
-          drawMultilineText(page, font, value, cellX, rowY - rowH, colWidth, rowH, rev.row_template.text_size, rev.row_template.align);
+          drawMultilineText(page, font, value, cellX, currentY - maxHeight, colWidth, maxHeight, rev.row_template.text_size, rev.row_template.align);
+        }
+        
+        // Draw vertical separator
+        if (j < rev.row_template.cells.length - 1) {
+          stroke(cellX + colWidth, currentY, cellX + colWidth, currentY - maxHeight);
         }
         
         cellX += colWidth;
       }
       
-      rowY -= rowH;
+      currentY -= maxHeight;
     }
-    
-    accX = tableX;
-    for (const col of rev.header.columns) {
-      accX += col.width;
-      if (round2(accX) < round2(tableX + usableWidth)) {
-        stroke(accX, currentY - dataH, accX, currentY);
-      }
-    }
-    currentY -= dataH;
   } else {
     strokeRect(stroke, tableX, currentY - minRowH, usableWidth, minRowH);
     accX = tableX;
@@ -849,12 +900,12 @@ async function generateGoldenPdf(payloadFile) {
     
     let currentY = headerFooter.header.y_position + headerFooter.header.height;
     
-    // Build context for rendering functions - must be defined before addNewPage
+    // Build context for rendering functions
     const buildContext = () => ({
       page, font, stroke, payload, headerFooter, manifest,
       pageWidth, pageHeight, leftMargin, rightMargin, usableWidth,
       topMargin, bottomMargin, minY,
-      currentY
+      currentY, pdfDoc
     });
     
     // Centralized page overflow handler
