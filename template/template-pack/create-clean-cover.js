@@ -1,4 +1,4 @@
-// create-clean-cover.js — refactored to avoid double stroking
+// create-clean-cover.js — refactored to use cover_design.json + Manifest.json
 const { PDFDocument, rgb } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
@@ -29,179 +29,225 @@ function strokeRect(stroke, x, y, w, h) {
 // ---------- config ----------
 const BORDER_CONFIG = { color: rgb(0, 0, 0), thickness: 0 }; // hairline
 
-// ---------- design ----------
-const designPath = path.join(__dirname, '..', 'cover_design.json');
-const design = JSON.parse(fs.readFileSync(designPath, 'utf8')); // :contentReference[oaicite:0]{index=0}
+// ---------- load design files ----------
+const coverDesignPath = path.join(__dirname, '..', 'cover_design.json');
+const manifestPath = path.join(__dirname, 'Manifest.json');
+const coverDesign = JSON.parse(fs.readFileSync(coverDesignPath, 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 async function createCleanCover() {
-  const { width: pageWidth, height: pageHeight } = design.page;
+  console.log('🚀 Creating clean Cover.pdf (BORDERS ONLY - NO TEXT)...');
+  console.log(`📖 Loading design from: cover_design.json + Manifest.json`);
+
+  const { width: pageWidth, height: pageHeight, margins } = coverDesign.page;
+  const { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin } = margins;
+  const usableWidth = pageWidth - leftMargin - rightMargin;
+
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
   const stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
-  const { top: topMargin, left: leftMargin, right: rightMargin } = design.page.margins;
-  const usableWidth = pageWidth - leftMargin - rightMargin;
+  console.log('📐 Page setup:');
+  console.log(`  - Page: ${pageWidth}pt × ${pageHeight}pt`);
+  console.log(`  - Margins: top=${topMargin}pt, bottom=${bottomMargin}pt, left=${leftMargin}pt, right=${rightMargin}pt`);
+  console.log(`  - Usable width: ${usableWidth.toFixed(2)}pt`);
 
-  // ---------------- HEADER: draw only requested edges per field, with dedupe
-  for (const f of design.header.fields) {
-    const x = f.x1, y = f.y2, w = f.x2 - f.x1, h = f.y1 - f.y2;
-    if (f.border_top !== false)    stroke(x, y + h, x + w, y + h);
-    if (f.border_bottom !== false) stroke(x, y,     x + w, y);
-    if (f.border_left !== false)   stroke(x, y,     x,     y + h);
-    if (f.border_right !== false)  stroke(x + w, y, x + w, y + h);
+  // ---------------- COVER HEADER: fields with absolute positioning ----------------
+  console.log('\n📋 Drawing Cover header (fields with absolute coordinates)...');
+
+  const headerFields = coverDesign.header.fields;
+  
+  for (const field of headerFields) {
+    const x1 = field.x1;
+    const y1 = field.y1;
+    const x2 = field.x2;
+    const y2 = field.y2;
+    const width = x2 - x1;
+    const height = y1 - y2;
+
+    // Determine which borders to draw
+    const drawTop = field.border_top !== false;
+    const drawBottom = field.border_bottom !== false;
+    const drawLeft = field.border_left !== false;
+    const drawRight = field.border_right !== false;
+
+    // Draw borders
+    if (drawTop) stroke(x1, y1, x2, y1);
+    if (drawBottom) stroke(x1, y2, x2, y2);
+    if (drawLeft) stroke(x1, y2, x1, y1);
+    if (drawRight) stroke(x2, y2, x2, y1);
   }
 
-  // ---------------- CONTENT TABLES
-  const tables = design.content.tables || [];
+  console.log(`  ✅ Cover header complete (${headerFields.length} fields with absolute positioning)`);
 
-  // == FIRMAS Y APROBACIONES: draw grid once ==
+  // Calculate currentY position for content tables (below header region)
+  let currentY = coverDesign.header.region.y;
+
+  // ---------------- CONTENT TABLES (from Manifest.json) ----------------
+  const tables = manifest.content?.tables || [];
+
+  // == FIRMAS Y APROBACIONES Table ==
+  console.log('\n📋 Drawing FIRMAS Y APROBACIONES table borders...');
   const firmas = tables.find(t => t.id === 'firmas_y_aprobaciones');
-  let firmasBottomY = null;
   if (firmas) {
-    const topY = pageHeight - topMargin;
-    const tableTop = topY - (firmas.margin_top || 0);
-
-    // Title box
+    currentY -= (firmas.margin_top || 0);
+    const tableX = leftMargin;
     const titleH = firmas.title.height;
-    strokeRect(stroke, leftMargin, tableTop - titleH, usableWidth, titleH);
-
-    // Header grid
     const headerH = firmas.header.height;
-    const headerTop = tableTop - titleH;
-    const headerY = headerTop - headerH;
-    strokeRect(stroke, leftMargin, headerY, usableWidth, headerH);
-
-    // Header verticals at column boundaries
-    let accX = leftMargin;
-    for (const col of firmas.header.columns) {
-      accX += col.width;
-      // skip last boundary that equals outer right edge
-      if (round2(accX) < round2(leftMargin + usableWidth)) {
-        stroke(accX, headerY, accX, headerY + headerH);
-      }
-    }
-
-    // Data grid
     const rowH = firmas.rows[0].height;
-    const rowsCount = firmas.rows.length;
-    const dataH = rowH * rowsCount;
-    const dataY = headerY - dataH;
 
-    // outer box
-    strokeRect(stroke, leftMargin, dataY, usableWidth, dataH);
-    // horizontals
-    for (let i = 1; i < rowsCount; i++) {
-      const y = dataY + i * rowH;
-      stroke(leftMargin, y, leftMargin + usableWidth, y);
-    }
-    // verticals same as header
-    accX = leftMargin;
+    // Title
+    strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+    currentY -= titleH;
+
+    // Header
+    strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+    let accX = tableX;
     for (const col of firmas.header.columns) {
       accX += col.width;
-      if (round2(accX) < round2(leftMargin + usableWidth)) {
-        stroke(accX, dataY, accX, dataY + dataH);
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - headerH, accX, currentY);
       }
     }
+    currentY -= headerH;
 
-    firmasBottomY = dataY; // top of section 2 will start from here
+    // Rows
+    const dataH = rowH * firmas.rows.length;
+    strokeRect(stroke, tableX, currentY - dataH, usableWidth, dataH);
+    for (let i = 1; i < firmas.rows.length; i++) {
+      stroke(tableX, currentY - i * rowH, tableX + usableWidth, currentY - i * rowH);
+    }
+    accX = tableX;
+    for (const col of firmas.header.columns) {
+      accX += col.width;
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - dataH, accX, currentY);
+      }
+    }
+    currentY -= dataH;
+
+    console.log(`  ✅ FIRMAS Y APROBACIONES borders complete (title + header + ${firmas.rows.length} rows)`);
   }
 
   // == SIGNING CONTAINER ==
+  console.log('\n✍️  Drawing Signing blocks borders...');
   const signing = tables.find(t => t.id === 'signing_container');
-  let section2Top = null;
-  let signingMaxHeight = 0;
-  if (signing && firmasBottomY !== null) {
-    section2Top = firmasBottomY - (signing.margin_top || 0);
+  if (signing) {
+    currentY -= (signing.margin_top || 0);
+    const baseX = leftMargin;
 
     for (const b of signing.blocks) {
-      const baseX = leftMargin + (b.x || 0);
-      let rowTopY = section2Top - (b.y || 0);
-      let blockHeight = 0;
+      const blockX = baseX + (b.x || 0);
+      let blockY = currentY - (b.y || 0);
 
       for (const r of b.rows) {
         const h = r.height;
-        const yBottom = rowTopY - h;
+        const yBottom = blockY - h;
 
-        // top edge
-        if (r.border_top !== false) stroke(baseX, rowTopY, baseX + b.width, rowTopY);
-        // bottom edge
-        if (r.border_bottom !== false) stroke(baseX, yBottom, baseX + b.width, yBottom);
-        // sides
-        stroke(baseX, rowTopY, baseX, yBottom);
-        stroke(baseX + b.width, rowTopY, baseX + b.width, yBottom);
-
-        // inner column divider for "columns" row
-        if (r.type === 'columns' && r.columns && r.columns.length > 1) {
-          let cx = baseX + r.columns[0].width;
-          stroke(cx, rowTopY, cx, yBottom);
+        // Check row type
+        if (r.type === 'columns' && r.columns) {
+          // Draw as columns
+          let colX = blockX;
+          for (let i = 0; i < r.columns.length; i++) {
+            const col = r.columns[i];
+            const colWidth = col.width;
+            
+            stroke(colX, blockY, colX + colWidth, blockY); // top
+            stroke(colX, yBottom, colX + colWidth, yBottom); // bottom
+            stroke(colX, yBottom, colX, blockY); // left
+            if (i === r.columns.length - 1) {
+              stroke(colX + colWidth, yBottom, colX + colWidth, blockY); // right on last column
+            }
+            
+            colX += colWidth;
+          }
+        } else {
+          // Normal row
+          if (r.border_top !== false) stroke(blockX, blockY, blockX + b.width, blockY);
+          if (r.border_bottom !== false) stroke(blockX, yBottom, blockX + b.width, yBottom);
+          stroke(blockX, blockY, blockX, yBottom);
+          stroke(blockX + b.width, blockY, blockX + b.width, yBottom);
         }
 
-        rowTopY = yBottom;
-        blockHeight += h;
+        blockY = yBottom;
       }
-      signingMaxHeight = Math.max(signingMaxHeight, (b.y || 0) + blockHeight);
     }
+
+    // Calculate max height for next section
+    const maxBlockHeight = Math.max(...signing.blocks.map(b => {
+      const totalHeight = b.rows.reduce((sum, r) => sum + r.height, 0);
+      return (b.y || 0) + totalHeight;
+    }));
+    currentY -= maxBlockHeight;
+
+    console.log(`  ✅ Signing blocks borders complete (${signing.blocks.length} blocks)`);
   }
 
-  // == CONTROL DE CAMBIOS: draw grid once ==
+  // == CONTROL DE CAMBIOS ==
+  console.log('\n📝 Drawing CONTROL DE CAMBIOS table borders...');
   const rev = tables.find(t => t.id === 'control_de_cambios');
   if (rev) {
-    let section3Top;
-    if (signing && section2Top !== null) {
-      section3Top = section2Top - signingMaxHeight - (rev.margin_top || 0);
-    } else if (firmasBottomY !== null) {
-      section3Top = firmasBottomY - (rev.margin_top || 0);
-    } else {
-      section3Top = pageHeight - topMargin - (rev.margin_top || 0);
-    }
-
+    currentY -= (rev.margin_top || 0);
+    const tableX = leftMargin;
     const titleH = rev.title.height;
-    strokeRect(stroke, leftMargin, section3Top - titleH, usableWidth, titleH);
-
     const headerH = rev.header.height;
-    const headerTop = section3Top - titleH;
-    const headerY = headerTop - headerH;
-    strokeRect(stroke, leftMargin, headerY, usableWidth, headerH);
-
-    // header verticals
-    let accX = leftMargin;
-    for (const col of rev.header.columns) {
-      accX += col.width;
-      if (round2(accX) < round2(leftMargin + usableWidth)) {
-        stroke(accX, headerY, accX, headerY + headerH);
-      }
-    }
-
-    // one template row box + verticals
     const rowH = rev.row_template.height;
-    const rowY = headerY - rowH;
-    strokeRect(stroke, leftMargin, rowY, usableWidth, rowH);
-    accX = leftMargin;
+
+    // Title
+    strokeRect(stroke, tableX, currentY - titleH, usableWidth, titleH);
+    currentY -= titleH;
+
+    // Header
+    strokeRect(stroke, tableX, currentY - headerH, usableWidth, headerH);
+    let accX = tableX;
     for (const col of rev.header.columns) {
       accX += col.width;
-      if (round2(accX) < round2(leftMargin + usableWidth)) {
-        stroke(accX, rowY, accX, rowY + rowH);
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - headerH, accX, currentY);
       }
     }
+    currentY -= headerH;
+
+    // One template row
+    strokeRect(stroke, tableX, currentY - rowH, usableWidth, rowH);
+    accX = tableX;
+    for (const col of rev.header.columns) {
+      accX += col.width;
+      if (round2(accX) < round2(tableX + usableWidth)) {
+        stroke(accX, currentY - rowH, accX, currentY);
+      }
+    }
+
+    console.log(`  ✅ CONTROL DE CAMBIOS borders complete (title + header + 1 template row)`);
   }
 
-  // ---------------- FOOTER
-  const foot = design.footer;
-  const ln = foot.separator_line;
-  // separator line
-  stroke(ln.x1, ln.y1, ln.x2, ln.y2);
-  // optional container border
-  const c = foot.container;
-  if (c.border !== false) {
-    strokeRect(stroke, c.x1, c.y2, c.x2 - c.x1, c.y1 - c.y2);
+  // ---------------- FOOTER (from cover_design.json) ----------------
+  console.log('\n📋 Drawing Footer...');
+
+  // Footer separator line (blue)
+  const footer = coverDesign.footer;
+  if (footer.separator_line) {
+    page.drawLine({
+      start: { x: footer.separator_line.x1, y: footer.separator_line.y1 },
+      end: { x: footer.separator_line.x2, y: footer.separator_line.y2 },
+      color: rgb(0, 0, 1),
+      thickness: footer.separator_line.thickness
+    });
   }
 
-  // ---------------- SAVE
+  console.log(`  ✅ Footer separator line complete`);
+
+  // ---------------- SAVE ----------------
   const pdfBytes = await pdfDoc.save();
   const outPath = path.join(__dirname, 'Cover.pdf');
   fs.writeFileSync(outPath, pdfBytes);
 
-  console.log('Cover.pdf created:', outPath, `${(pdfBytes.length / 1024).toFixed(2)} KB`);
+  console.log('\n✅ Cover.pdf created successfully (BORDERS ONLY - NO TEXT)!');
+  console.log(`   📄 Location: ${outPath}`);
+  console.log(`   📦 Size: ${(pdfBytes.length / 1024).toFixed(2)} KB`);
+  console.log('\n⚠️  IMPORTANT: This PDF contains ONLY borders and lines.');
+  console.log('   Header/Footer design from: cover_design.json');
+  console.log('   Body content tables from: Manifest.json');
 }
 
-createCleanCover().catch(e => { console.error(e); process.exit(1); });
+createCleanCover().catch(e => { console.error('❌ Error creating cover:', e); process.exit(1); });

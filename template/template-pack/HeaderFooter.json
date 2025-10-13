@@ -4,7 +4,13 @@
   "page": {
     "width": 612,
     "height": 792,
-    "unit": "point"
+    "unit": "point",
+    "margins": {
+      "top": 142,
+      "bottom": 99,
+      "left": 71,
+      "right": 71
+    }
   },
   "fonts": {
     "regular": "fonts/Inter-Regular.ttf",
@@ -12,66 +18,191 @@
   },
   "header": {
     "enabled": true,
-    "height": 45.6,
-    "position": {
-      "x": 156,
-      "y": 753.6,
-      "width": 336,
-      "height": 45.6
-    },
-    "content": {
-      "type": "composite",
-      "elements": [
-        {
-          "text": "{{document.code}}-{{document.semanticVersion}}-{{context.currentPhase}}-{{context.correlativocurrentPhase}}",
-          "separator": " | "
-        },
-        {
-          "text": "{{document.title}}",
-          "separator": " | "
-        },
-        {
-          "text": "{{document.semanticVersion}}",
-          "separator": " | "
-        },
-        {
-          "text": "{{context.stagePhase}}",
-          "separator": "\n"
-        },
-        {
-          "text": "Fecha: {{document.publicationDate}}",
-          "separator": " | "
-        },
-        {
-          "text": "Clasificación: {{context.classificationName}}",
-          "separator": " | "
-        },
-        {
-          "text": "Página {{pageNumber}} de {{totalPages}}",
-          "separator": " | "
-        },
-        {
-          "text": "Hash: …{{document.security.hashSha256Short}}",
-          "separator": ""
-        }
-      ],
-      "style": {
-        "font": "regular",
-        "size": 9,
-        "align": "center",
-        "wrap": true,
-        "color": "#000000"
-      }
-    },
+    "height": 46,
+    "margin_bottom": 10,
     "border": {
-      "top": false,
       "bottom": true,
       "width": 1,
       "color": "#000000"
+    },
+    "content": {
+      "type": "composite",
+      "text_size": 9,
+      "align": "center",
+      "wrap": true,
+      "color": "#000000",
+      "elements": [
+        {
+          "source": "{{document.code}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{document.semanticVersion}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{context.currentPhase}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{context.correlativocurrentPhase}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{document.title}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{document.semanticVersion}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{context.stagePhase}}"
+        },
+        {
+          "text": "\n"
+        },
+        {
+          "text": "Fecha: "
+        },
+        {
+          "source": "{{document.publicationDate}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Clasificación: "
+        },
+        {
+          "source": "{{context.classificationName}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Página {{pageNumber}} de {{totalPages}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Hash: …"
+        },
+        {
+          "source": "{{document.security.hashSha256Short}}"
+        }
+      ]
     }
   },
   "footer": {
-    "enabled": false,
-    "height": 0
+    "enabled": true,
+    "height": 46,
+    "margin_top": 10,
+    "border": {
+      "enabled": false
+    },
+    "separator_line": {
+      "enabled": true,
+      "x1": 82,
+      "y1": 84,
+      "x2": 535,
+      "y2": 84,
+      "color": "blue",
+      "thickness": 1
+    },
+    "content": {
+      "type": "composite",
+      "text_size": 9,
+      "align": "center",
+      "wrap": true,
+      "color": "#000000",
+      "elements": [
+        {
+          "source": "{{document.code}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{document.semanticVersion}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{context.currentPhase}}"
+        },
+        {
+          "text": "-"
+        },
+        {
+          "source": "{{context.correlativocurrentPhase}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{document.title}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{document.semanticVersion}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "source": "{{context.stagePhase}}"
+        },
+        {
+          "text": "\n"
+        },
+        {
+          "text": "Fecha: "
+        },
+        {
+          "source": "{{document.publicationDate}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Clasificación: "
+        },
+        {
+          "source": "{{context.classificationName}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Página {{pageNumber}} de {{totalPages}}"
+        },
+        {
+          "text": " | "
+        },
+        {
+          "text": "Hash: …"
+        },
+        {
+          "source": "{{document.security.hashSha256}}"
+        }
+      ]
+    }
   }
 }
