@@ -745,11 +745,12 @@ function createPageHeaderRenderer(config) {
 }
 
 function createPageFooterRenderer(config) {
-  const { pageWidth, leftMargin, rightMargin, font, payload, headerFooter } = config;
+  const { pageWidth, leftMargin, rightMargin, font, payload, headerFooter, pdfDoc } = config;
   
-  return function renderFooter(targetPage) {
+  return function renderFooter(targetPage, pageNumber, totalPages) {
     const footer = headerFooter.footer;
     
+    // Draw separator line
     if (footer.separator_line && footer.separator_line.enabled) {
       const lineY = footer.separator_line.y_position;
       const lineX1 = leftMargin + footer.separator_line.margin_left;
@@ -763,19 +764,55 @@ function createPageFooterRenderer(config) {
       });
     }
     
-    const footerY = footer.y_position;
-    const footerText = `${resolveTemplate('{{document.code}}', payload)} | ${resolveTemplate('{{document.title}}', payload)} | ${resolveTemplate('{{document.semanticVersion}}', payload)}`;
-    const footerSize = 8;
-    const footerWidth = font.widthOfTextAtSize(footerText, footerSize);
-    const footerX = (pageWidth - footerWidth) / 2;
+    // Build composite footer text from elements
+    const elements = footer.content?.elements || [];
+    let footerText = '';
     
-    targetPage.drawText(footerText, {
-      x: footerX,
-      y: footerY,
-      size: footerSize,
-      font: font,
-      color: rgb(0.3, 0.3, 0.3)
-    });
+    for (const elem of elements) {
+      if (elem.text) {
+        // Replace page number placeholders
+        let text = elem.text;
+        text = text.replace('{v}', pageNumber.toString());
+        text = text.replace('{h}', totalPages.toString());
+        footerText += text;
+      } else if (elem.source) {
+        const resolved = resolveTemplate(elem.source, payload);
+        if (resolved) {
+          // Truncate hash to last 8 characters for display
+          if (elem.source.includes('hashSha256') && resolved.length > 8) {
+            footerText += resolved.substring(resolved.length - 8);
+          } else {
+            footerText += resolved;
+          }
+        }
+      }
+    }
+    
+    // Draw footer text
+    const footerY = footer.y_position;
+    const footerSize = footer.content?.text_size || 7;
+    const availableWidth = pageWidth - (footer.content?.margin_left || 0) - (footer.content?.margin_right || 0);
+    
+    // Wrap text if needed
+    const lines = wrapText(font, footerText, availableWidth, footerSize, 0);
+    
+    let currentY = footerY;
+    for (const line of lines) {
+      const lineWidth = font.widthOfTextAtSize(line, footerSize);
+      const footerX = footer.content?.align === 'center' 
+        ? (pageWidth - lineWidth) / 2 
+        : (footer.content?.margin_left || leftMargin);
+      
+      targetPage.drawText(line, {
+        x: footerX,
+        y: currentY,
+        size: footerSize,
+        font: font,
+        color: rgb(0.3, 0.3, 0.3)
+      });
+      
+      currentY -= footerSize * 1.2; // Line spacing
+    }
   };
 }
 
@@ -808,11 +845,12 @@ async function generateGoldenPdf(payloadFile) {
     const font = await pdfDoc.embedFont(fontBytes);
     
     const renderHeader = createPageHeaderRenderer({ pageHeight, topMargin, pageWidth, font, payload });
-    const renderFooter = createPageFooterRenderer({ pageWidth, leftMargin, rightMargin, font, payload, headerFooter });
+    const renderFooter = createPageFooterRenderer({ pageWidth, leftMargin, rightMargin, font, payload, headerFooter, pdfDoc });
     
     // Centralized page overflow handler
     function addNewPage() {
-      renderFooter(page);
+      const currentPageIndex = pdfDoc.getPageCount();
+      renderFooter(page, currentPageIndex, currentPageIndex); // Will update total later
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
       renderHeader(page);
@@ -865,10 +903,10 @@ async function generateGoldenPdf(payloadFile) {
       currentY = renderRevisionTable({ ...buildContext(), currentY, rev });
     }
 
-    // Render footers on all pages
+    // Render footers on all pages with correct page numbers
     const totalPages = pdfDoc.getPageCount();
     for (let i = 0; i < totalPages; i++) {
-      renderFooter(pdfDoc.getPages()[i]);
+      renderFooter(pdfDoc.getPages()[i], i + 1, totalPages);
     }
 
     const pdfBytes = await pdfDoc.save();
