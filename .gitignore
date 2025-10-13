@@ -4,7 +4,6 @@ nul
 *.pdf
 .claude
 *.docx
-*.ttf
 FLOWCHART_ANALYSIS.md
 package-lock.json
 
