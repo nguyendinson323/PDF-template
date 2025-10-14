@@ -1,0 +1,606 @@
+openapi: 3.0.3
+info:
+  title: Document Control Microservice API
+  description: |
+    Stateless microservice for document publication and compliance stamping.
+    Generates official PDFs with cover + header/footer, computes SHA-256,
+    embeds RFC 3161 TimeStamp Token (PAdES DocTimeStamp), and uploads to AWS S3.
+  version: 1.0.0
+  contact:
+    name: Passfy Document Control Team
+    email: support@passfy.com
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://api.passfy.com/document-control
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Publication
+    description: Document publication operations
+  - name: Jobs
+    description: Job status tracking
+  - name: Checklists
+    description: Checklist PDF generation
+  - name: Audit
+    description: Audit pack operations
+  - name: Verification
+    description: Document verification
+  - name: Health
+    description: Service health and metrics
+
+paths:
+  /publish/documents/{docId}/start:
+    post:
+      tags:
+        - Publication
+      summary: Start document publication job
+      description: |
+        Initiates a publication job that:
+        - Merges body PDF/DOCX with generated cover
+        - Applies header/footer stamping
+        - Computes SHA-256 hash
+        - Embeds RFC 3161 TSA token (PAdES DocTimeStamp)
+        - Uploads to S3 with SSE-KMS and Object Lock
+      operationId: startPublication
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Document identifier
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique key for idempotent requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicationRequest'
+      responses:
+        '202':
+          description: Job accepted and processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: [publish:doc]
+
+  /publish/jobs/{jobId}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job status
+      description: Retrieves the current status and results of a publication job
+      operationId: getJobStatus
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Job identifier
+      responses:
+        '200':
+          description: Job status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+        - BearerAuth: [jobs:read]
+
+  /publish/documents/{docId}/checklists:
+    post:
+      tags:
+        - Checklists
+      summary: Issue checklist PDF
+      description: |
+        Generates an official checklist PDF from structured JSON answers,
+        stamps header/footer, computes hash, applies optional TSA, uploads to S3
+      operationId: issueChecklist
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecklistRequest'
+      responses:
+        '202':
+          description: Checklist job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      security:
+        - BearerAuth: [publish:chk]
+
+  /publish/documents/{docId}/audit-pack:
+    post:
+      tags:
+        - Audit
+      summary: Generate audit pack
+      description: Concatenates final document + checklists into a single PDF
+      operationId: generateAuditPack
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditPackRequest'
+      responses:
+        '202':
+          description: Audit pack job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      security:
+        - BearerAuth: [publish:audit]
+
+  /publish/verify:
+    get:
+      tags:
+        - Verification
+      summary: Verify document
+      description: Returns published document metadata (code, version, sha256, tsa, s3Key)
+      operationId: verifyDocument
+      parameters:
+        - name: docId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document verification data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+        - BearerAuth: [verify:read]
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns service health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+      security:
+        - BearerAuth: [health:read]
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Returns metrics in Prometheus text format
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics data
+          content:
+            text/plain:
+              schema:
+                type: string
+      security:
+        - BearerAuth: [metrics:read]
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from AWS Cognito
+
+  schemas:
+    PublicationRequest:
+      type: object
+      required:
+        - document
+        - context
+        - participants
+        - checklists
+        - revision_history
+        - bodyPdfUrl
+      properties:
+        document:
+          $ref: '#/components/schemas/Document'
+        context:
+          $ref: '#/components/schemas/Context'
+        participants:
+          $ref: '#/components/schemas/Participants'
+        checklists:
+          $ref: '#/components/schemas/Checklists'
+        revision_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/Revision'
+        bodyPdfUrl:
+          type: string
+          format: uri
+          description: URL to body PDF or DOCX file
+
+    Document:
+      type: object
+      required:
+        - code
+        - title
+        - semanticVersion
+      properties:
+        brand:
+          type: object
+          properties:
+            logoUrl:
+              type: string
+              format: uri
+        code:
+          type: string
+          example: "DOC-001"
+        title:
+          type: string
+        semanticVersion:
+          type: string
+          example: "v1.0.0"
+        publicationDate:
+          type: string
+          format: date
+        qr:
+          type: object
+          properties:
+            baseUrl:
+              type: string
+              format: uri
+        security:
+          type: object
+          properties:
+            hashSha256:
+              type: string
+            tsaTime:
+              type: string
+              format: date-time
+            tsaSerial:
+              type: string
+
+    Context:
+      type: object
+      properties:
+        areaCode:
+          type: string
+        areaName:
+          type: string
+        typeCode:
+          type: string
+        typeName:
+          type: string
+        classificationName:
+          type: string
+        criticalityCode:
+          type: string
+        criticalityName:
+          type: string
+        destinationPhase:
+          type: string
+        currentPhase:
+          type: string
+        statuscurrentPhase:
+          type: string
+        correlativocurrentPhase:
+          type: string
+        stagePhase:
+          type: string
+
+    Participants:
+      type: object
+      properties:
+        creator:
+          $ref: '#/components/schemas/Participant'
+        reviewers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        qac:
+          $ref: '#/components/schemas/Participant'
+        approvers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        dcontrol:
+          $ref: '#/components/schemas/Participant'
+
+    Participant:
+      type: object
+      properties:
+        name:
+          type: string
+        jobTitle:
+          type: string
+        signature:
+          type: string
+          description: Base64 encoded signature image or data URI
+
+    Checklists:
+      type: object
+      properties:
+        creator:
+          $ref: '#/components/schemas/ChecklistItem'
+        review:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChecklistItem'
+        qac:
+          $ref: '#/components/schemas/ChecklistItem'
+        approval:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChecklistItem'
+        publish:
+          $ref: '#/components/schemas/ChecklistItem'
+
+    ChecklistItem:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+
+    Revision:
+      type: object
+      required:
+        - version
+        - date
+        - revisionDescription
+        - responsibleName
+      properties:
+        version:
+          type: string
+        date:
+          type: string
+          format: date
+        revisionDescription:
+          type: string
+        responsibleName:
+          type: string
+
+    ChecklistRequest:
+      type: object
+      required:
+        - checklistId
+        - answers
+      properties:
+        checklistId:
+          type: string
+        answers:
+          type: array
+          items:
+            type: object
+
+    AuditPackRequest:
+      type: object
+      required:
+        - docId
+        - version
+        - checklistIds
+      properties:
+        docId:
+          type: string
+        version:
+          type: string
+        checklistIds:
+          type: array
+          items:
+            type: string
+
+    JobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    JobStatus:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        result:
+          type: object
+          properties:
+            s3Key:
+              type: string
+            sha256:
+              type: string
+            tsaToken:
+              type: object
+            qrUrl:
+              type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    VerificationResponse:
+      type: object
+      properties:
+        docId:
+          type: string
+        version:
+          type: string
+        sha256:
+          type: string
+        tsaTime:
+          type: string
+          format: date-time
+        tsaSerial:
+          type: string
+        s3Key:
+          type: string
+        qrUrl:
+          type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        uptime:
+          type: number
+        checks:
+          type: object
+          properties:
+            s3:
+              type: string
+              enum: [ok, error]
+            tsa:
+              type: string
+              enum: [ok, error]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Idempotency conflict - same key with different payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    UnprocessableEntity:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

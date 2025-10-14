@@ -1,0 +1,225 @@
+{
+  "info": {
+    "name": "Document Control Microservice",
+    "description": "API collection for document publication and compliance stamping",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publication",
+      "item": [
+        {
+          "name": "Start Publication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document\": {\n    \"brand\": {\n      \"logoUrl\": \"https://example.com/logo.png\"\n    },\n    \"code\": \"DOC-001\",\n    \"title\": \"Sample Document\",\n    \"semanticVersion\": \"v1.0.0\",\n    \"publicationDate\": \"2024-01-15\",\n    \"qr\": {\n      \"baseUrl\": \"https://verify.example.com/\"\n    }\n  },\n  \"context\": {\n    \"areaCode\": \"ENG\",\n    \"areaName\": \"Engineering\",\n    \"typeCode\": \"PROC\",\n    \"typeName\": \"Procedure\",\n    \"classificationName\": \"Internal\",\n    \"criticalityCode\": \"HIGH\",\n    \"criticalityName\": \"High\",\n    \"destinationPhase\": \"Production\",\n    \"currentPhase\": \"Review\",\n    \"statuscurrentPhase\": \"Active\",\n    \"correlativocurrentPhase\": \"001\",\n    \"stagePhase\": \"Draft\"\n  },\n  \"participants\": {\n    \"creator\": {\n      \"name\": \"John Doe\",\n      \"jobTitle\": \"Engineer\",\n      \"signature\": null\n    },\n    \"reviewers\": [\n      {\n        \"name\": \"Jane Smith\",\n        \"jobTitle\": \"Senior Engineer\",\n        \"signature\": null\n      }\n    ],\n    \"qac\": {\n      \"name\": \"QA Manager\",\n      \"jobTitle\": \"Quality Assurance\",\n      \"signature\": null\n    },\n    \"approvers\": [\n      {\n        \"name\": \"Director\",\n        \"jobTitle\": \"Engineering Director\",\n        \"signature\": null\n      }\n    ],\n    \"dcontrol\": {\n      \"name\": \"Doc Control\",\n      \"jobTitle\": \"Document Controller\",\n      \"signature\": null\n    }\n  },\n  \"checklists\": {\n    \"creator\": {\n      \"id\": \"CHK-001\",\n      \"date\": \"2024-01-10\",\n      \"status\": \"Completed\"\n    },\n    \"review\": [\n      {\n        \"id\": \"CHK-002\",\n        \"date\": \"2024-01-12\",\n        \"status\": \"Completed\"\n      }\n    ],\n    \"qac\": {\n      \"id\": \"CHK-003\",\n      \"date\": \"2024-01-13\",\n      \"status\": \"Completed\"\n    },\n    \"approval\": [\n      {\n        \"id\": \"CHK-004\",\n        \"date\": \"2024-01-14\",\n        \"status\": \"Completed\"\n      }\n    ],\n    \"publish\": {\n      \"id\": \"CHK-005\",\n      \"date\": \"2024-01-15\",\n      \"status\": \"Completed\"\n    }\n  },\n  \"revision_history\": [\n    {\n      \"version\": \"v1.0.0\",\n      \"date\": \"2024-01-15\",\n      \"revisionDescription\": \"Initial version\",\n      \"responsibleName\": \"John Doe\"\n    }\n  ],\n  \"bodyPdfUrl\": \"https://example.com/sample-body.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/publish/documents/:docId/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["publish", "documents", ":docId", "start"],
+              "variable": [
+                {
+                  "key": "docId",
+                  "value": "DOC-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Job Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publish/jobs/:jobId",
+              "host": ["{{baseUrl}}"],
+              "path": ["publish", "jobs", ":jobId"],
+              "variable": [
+                {
+                  "key": "jobId",
+                  "value": "{{job_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checklists",
+      "item": [
+        {
+          "name": "Issue Checklist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checklistId\": \"CHK-001\",\n  \"answers\": [\n    {\n      \"question\": \"Is document complete?\",\n      \"answer\": \"Yes\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/publish/documents/:docId/checklists",
+              "host": ["{{baseUrl}}"],
+              "path": ["publish", "documents", ":docId", "checklists"],
+              "variable": [
+                {
+                  "key": "docId",
+                  "value": "DOC-001"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "Generate Audit Pack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"docId\": \"DOC-001\",\n  \"version\": \"v1.0.0\",\n  \"checklistIds\": [\"CHK-001\", \"CHK-002\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/publish/documents/:docId/audit-pack",
+              "host": ["{{baseUrl}}"],
+              "path": ["publish", "documents", ":docId", "audit-pack"],
+              "variable": [
+                {
+                  "key": "docId",
+                  "value": "DOC-001"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "Verify Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publish/verify?docId=DOC-001&version=v1.0.0",
+              "host": ["{{baseUrl}}"],
+              "path": ["publish", "verify"],
+              "query": [
+                {
+                  "key": "docId",
+                  "value": "DOC-001"
+                },
+                {
+                  "key": "version",
+                  "value": "v1.0.0"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "job_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
