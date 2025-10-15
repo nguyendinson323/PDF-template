@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+
+# Local S3 storage (simulated)
+s3-local/**/*
+!s3-local/.gitkeep
+!s3-local/Desarrollo/.gitkeep
+!s3-local/Desarrollo/bodies/.gitkeep
+!s3-local/Desarrollo/stamped/.gitkeep
+!s3-local/Publicados/.gitkeep
+!s3-local/Publicados/official/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test outputs
+test-outputs/
+samples/
+
+# Build artifacts
+dist/
+build/
