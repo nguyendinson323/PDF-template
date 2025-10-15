@@ -1,0 +1,77 @@
+{
+  "cover_placeholders": {
+    "companyLogo": "document.brand.logoUrl",
+    "docTitle": "document.title",
+    "imageQrcode": "document.qr.baseUrl + document.code + document.semanticVersion",
+    "docId": "document.code",
+
+    "areaCode": "context.areaCode",
+    "areaName": "context.areaName",
+    "confidentialityName": "context.classificationName",
+    "criticalityCode": "context.criticalityCode",
+    "criticalityName": "context.criticalityName",
+    "semantic_finalPhase": "document.semanticVersion",
+    "finalPhase": "context.destinationPhase",
+    "publicationDate": "document.publicationDate",
+    "typeCode": "context.typeCode",
+    "typeName": "context.typeName",
+    "currentPhase": "context.currentPhase",
+    "statuscurrentPhase": "context.statuscurrentPhase",
+    "correlativocurrentPhase": "context.correlativocurrentPhase",
+    "stagePhase": "context.stagePhase",
+
+    "nameCreator": "participants.creator.name",
+    "jobpositionCreator": "participants.creator.jobTitle",
+    "idcreatorChecklistsubmit": "checklists.creator.id",
+    "datecreatorChecklistsubmit": "checklists.creator.date",
+    "statuscreatorChecklistsubmit": "checklists.creator.status",
+
+    "nameReviewer": "participants.reviewers[0].name",
+    "jobpositionReviewer": "participants.reviewers[0].jobTitle",
+    "idreviewChecklistsubmit": "checklists.review[0].id",
+    "datereviewChecklistsubmit": "checklists.review[0].date",
+    "statusreviewChecklistsubmit": "checklists.review[0].status",
+
+    "nameQac": "participants.qac.name",
+    "jobpositionQac": "participants.qac.jobTitle",
+    "idqacChecklistsubmit": "checklists.qac.id",
+    "dateqacChecklistsubmit": "checklists.qac.date",
+    "statusqacChecklistsubmit": "checklists.qac.status",
+
+    "nameApproval": "participants.approvers[0].name",
+    "jobpositionApproval": "participants.approvers[0].jobTitle",
+    "idapprovalChecklistsubmit": "checklists.approval[0].id",
+    "dateapprovalChecklistsubmit": "checklists.approval[0].date",
+    "statusapprovalChecklistsubmit": "checklists.approval[0].status",
+
+    "nameDcontrol": "participants.dcontrol.name",
+    "jobpositionDcontrol": "participants.dcontrol.jobTitle",
+    "iddcontrolChecklistsubmit": "checklists.publish.id",
+    "datedcontrolChecklistsubmit": "checklists.publish.date",
+    "statusdcontrolChecklistsubmit": "checklists.publish.status",
+
+    "semantictableVersion": "revision_history[].version",
+    "publicationtableDate": "revision_history[].date",
+    "descriptiontableVersion": "revision_history[].revisionDescription",
+    "namedcontroltableVersion": "revision_history[].responsibleName",
+
+    "shortHash": "document.security.hashSha256 (short display)",
+    "tsaTime": "document.security.tsaTime",
+    "tsaSerial": "document.security.tsaSerial",
+
+    "signCreator": "participants.creator.signature",
+    "signReviewer": "participants.reviewers[0].signature",
+    "signQac": "participants.qac.signature",
+    "signApproval": "participants.approvers[0].signature",
+    "signDcontrol": "participants.dcontrol.signature"
+  },
+  "notes": [
+    "All variables are populated by the microservice based on the DTO payload.",
+    "Signatures are optional; render blank/dashed if null.",
+    "Hash/TSA only present after final publish (status = 'Publicada').",
+    "Dates must be ISO 8601 (YYYY-MM-DD).",
+    "Repeat revision_history rows for each item.",
+    "Keep Spanish labels/enums exactly as defined in contract-m1.json.",
+    "QR is generated using document.qr.baseUrl + document.code + document.semanticVersion (and optionally hash)."
+  ]
+}

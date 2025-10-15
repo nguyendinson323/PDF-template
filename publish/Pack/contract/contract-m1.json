@@ -1,0 +1,154 @@
+{
+  "notes": [
+    "Machine-to-machine contract (backend -> microservice).",
+    "Backend must send human-readable names; microservice does not translate.",
+    "Microservice is called in ALL phases/versions to stamp cover and store in S3.",
+    "QR is built by the microservice from document.qr.baseUrl + document.code + document.semanticVersion + final hash.",
+    "Do not rename enums; use EXACT strings in enums, phaseStatusMap and stage mapping rules."
+  ],
+
+  "rules": {
+    "destinationPhase": {
+      "description": "When a document is created (R-Draft) the backend MUST set a destinationPhase (one of V-*). This governs stage behavior throughout the process.",
+      "acceptedValues": ["V-Test","V-Major","V-Minor","V-Patch","V-Deprecated","V-Cancelled","V-Obsolete"]
+    },
+    "stagePhase_mapping": {
+      "R-*": {
+        "allowedStages": ["En Desarrollo"],
+        "rule": "If currentPhase starts with 'R-', stagePhase MUST be 'En Desarrollo'."
+      },
+      "V-Test|V-Major|V-Minor|V-Patch": {
+        "allowedStages": ["Desarrollo","Vigente"],
+        "rule": "Use 'Desarrollo' until publish (no TSA/hash); change to 'Vigente' after publish."
+      },
+      "V-Deprecated": {
+        "allowedStages": ["Desarrollo","Sustituido"],
+        "rule": "Switch to 'Sustituido' after replacement is published."
+      },
+      "V-Cancelled": {
+        "allowedStages": ["En Desarrollo","Anulado"],
+        "rule": "Switch to 'Anulado' after cancellation publish."
+      },
+      "V-Obsolete": {
+        "allowedStages": ["En Desarrollo","Archivado"],
+        "rule": "Switch to 'Archivado' after archival publish."
+      }
+    }
+  },
+
+  "dto": {
+    "document": {
+      "code": "",
+      "title": "",
+      "publicationDate": "",
+      "semanticVersion": "",
+      "brand": { "logoUrl": "" },
+      "qr":   { "baseUrl": "" },
+      "security": {
+        "hashSha256": "",
+        "tsaTime": "",
+        "tsaSerial": ""
+      },
+      "storage": { "s3Key": "" },
+
+      "folderPath": "/GOV/PRC/PAS-L1-GOV-POL-001",
+
+      "s3Refs": {
+        "body":    "Desarrollo/bodies/{docId}-{semanticVersion}-{currentPhase}-{correlative}.pdf",
+        "stamped": "Desarrollo/stamped/{docId}-{semanticVersion}-{currentPhase}-{correlative}.pdf",
+        "official":"Publicados/official/{docId}-{semanticVersion}.pdf"
+      }
+    },
+
+    "context": {
+      "areaCode": "",
+      "areaName": "",
+      "typeCode": "",
+      "typeName": "",
+      "criticalityCode": "",
+      "criticalityName": "",
+      "classificationName": "",
+
+      "currentPhase": "",
+      "statuscurrentPhase": "",
+      "correlativocurrentPhase": "",
+
+      "stagePhase": "",
+      "destinationPhase": "",
+
+      "hasDiffReport": true,
+      "checklistsAllApproved": true
+    },
+
+    "bodySource": {
+      "bucket": "passfy-docs-bucket",
+      "s3Key": "Desarrollo/bodies/{docId}-{semanticVersion}-{currentPhase}-{correlative}.pdf"
+    },
+
+    "participants": {
+      "creator":   { "name": "", "jobTitle": "" },
+      "reviewers": [{ "name": "", "jobTitle": "" }],
+      "qac":       { "name": "", "jobTitle": "" },
+      "approvers": [{ "name": "", "jobTitle": "" }],
+      "dcontrol":  { "name": "", "jobTitle": "" }
+    },
+
+    "checklists": {
+      "creator":  { "id": "", "date": "", "status": "" },
+      "review":   [{ "id": "", "date": "", "status": "" }],
+      "qac":      { "id": "", "date": "", "status": "" },
+      "approval": [{ "id": "", "date": "", "status": "" }],
+      "publish":  { "id": "", "date": "", "status": "" }
+    },
+
+    "revision_history": [
+      { "version": "", "date": "", "revisionDescription": "", "responsibleName": "" }
+    ]
+  },
+
+  "enums": {
+    "phases": [
+      "R-Draft","R-View","R-Approval","R-qac","R-Final",
+      "V-Test","V-Major","V-Minor","V-Patch","V-Deprecated","V-Cancelled","V-Obsolete"
+    ],
+    "stagePhase": ["En Desarrollo","Desarrollo","Vigente","Sustituido","Anulado","Archivado"],
+    "criticality": { "codes": ["L1","L2","L3"], "names": ["Alta","Media","Baja"] },
+    "classification": ["Publica","Interna","Confidencial"]
+  },
+
+  "phaseStatusMap": {
+    "R-Draft":     ["Asignada","En Proceso","Aprobada","Cancelada"],
+    "R-View":      ["Asignada","En Proceso","Aprobada","Comentada","Rechazada","Cancelada"],
+    "R-qac":       ["Asignada","En Proceso","Aprobada","Comentada","Rechazada","Cancelada"],
+    "R-Approval":  ["Asignada","En Proceso","Aprobada","Comentada","Rechazada","Cancelada"],
+    "R-Final":     ["Asignada","En Proceso","Aprobada","Comentada","Rechazada","Cancelada","Enviada Publicar","Pendiente"],
+    "V-Test":      ["Publicada"],
+    "V-Major":     ["Publicada"],
+    "V-Minor":     ["Publicada"],
+    "V-Patch":     ["Publicada"],
+    "V-Deprecated":["Publicada"],
+    "V-Cancelled": ["Publicada"],
+    "V-Obsolete":  ["Publicada"]
+  },
+
+  "mapping_hints": {
+    "document.code": "documents.pasCode",
+    "document.title": "documents.title",
+    "document.publicationDate": "documents.updatedAt (or 'publishedAt')",
+    "document.folderPath": "document_folders.path (e.g., '/GOV/PRC/PAS-L1-GOV-POL-001')",
+    "document.s3Refs.body":    "Desarrollo/bodies/{docId}-{semanticVersion}-{currentPhase}-{correlative}.pdf",
+    "document.s3Refs.stamped": "Desarrollo/stamped/{docId}-{semanticVersion}-{currentPhase}-{correlative}.pdf",
+    "document.s3Refs.official":"Publicados/official/{docId}-{semanticVersion}.pdf",
+
+    "context.areaCode": "documents.area", "context.areaName": "document_areas.name (JOIN)",
+    "context.typeCode": "documents.type", "context.typeName": "document_types.name (JOIN)",
+    "context.criticalityCode": "documents.criticality (L1|L2|L3)",
+    "context.criticalityName": "map(L1->Alta, L2->Media, L3->Baja)",
+    "context.classificationName": "map to 'Publica|Interna|Confidencial'",
+    "context.currentPhase": "documents.phase",
+    "context.statuscurrentPhase": "documents.state",
+    "context.correlativocurrentPhase": "documents.correlative",
+    "context.destinationPhase": "set once at creation (R-Draft)",
+    "context.stagePhase": "derive using stagePhase_mapping + destinationPhase"
+  }
+}

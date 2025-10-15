@@ -1,0 +1,33 @@
+{
+  "document": {
+    "code": "PAS-L2-PKI-ESP-003",
+    "title": "CloudHSM Implementation Guide",
+    "publicationDate": "2025-10-05",
+    "semanticVersion": "v2.0.0",
+    "brand": { "logoUrl": "https://assets.passfy.io/logo.png" },
+    "qr": { "baseUrl": "https://verify.passfy.io/doc" },
+    "storage": { "s3Key": "" },
+    "folderPath": "/PKI/ESP/PAS-L2-PKI-ESP-003",
+    "s3Refs": {
+      "body": "Desarrollo/bodies/PAS-L2-PKI-ESP-003-v2.0.0-R-View-003.pdf",
+      "stamped": "Desarrollo/stamped/PAS-L2-PKI-ESP-003-v2.0.0-R-View-003.pdf",
+      "official": "Publicados/official/PAS-L2-PKI-ESP-003-v2.0.0.pdf"
+    }
+  },
+  "context": {
+    "areaCode": "PKI",
+    "areaName": "Public Key Infrastructure",
+    "typeCode": "ESP",
+    "typeName": "Especificación",
+    "criticalityCode": "L2",
+    "criticalityName": "Media",
+    "classificationName": "Interna",
+    "currentPhase": "R-View",
+    "statuscurrentPhase": "En Proceso",
+    "correlativocurrentPhase": "R-View-003",
+    "stagePhase": "En Desarrollo",
+    "destinationPhase": "V-Major",
+    "hasDiffReport": true,
+    "checklistsAllApproved": false
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "info": { "name": "Document Publisher", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    {
+      "name": "health",
+      "request": { "method": "GET", "url": { "raw": "http://localhost:8080/health", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["health"] } }
+    },
+    {
+      "name": "stamp (JSON + bodySource)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer TEST" }],
+        "body": { "mode": "raw", "raw": "{{dto_s3_json}}" },
+        "url": { "raw": "http://localhost:8080/stamp", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["stamp"] }
+      }
+    },
+    {
+      "name": "publish (multipart + body)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer TEST" }],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "dto", "type": "file", "src": "examples/dto-multipart.json" },
+            { "key": "body", "type": "file", "src": "examples/body.pdf" }
+          ]
+        },
+        "url": { "raw": "http://localhost:8080/publish", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["publish"] }
+      }
+    }
+  ],
+  "variable": [{ "key": "dto_s3_json", "value": "" }]
+}
