@@ -81,20 +81,28 @@ router.post('/', upload.fields([
       throw new ValidationError('Body file must be a PDF');
     }
 
-    // Step 1: Generate cover page (without hash/TSA first)
-    logger.debug('Generating cover page (initial)');
+    // Step 1: Generate initial cover to get page count
+    logger.debug('Generating cover page (initial - for page count)');
     let coverPdfBytes = await generateCover(dto);
-
-    // Get cover page count for continuous numbering
     const coverDoc = await PDFDocument.load(coverPdfBytes);
     const coverPageCount = coverDoc.getPageCount();
-    logger.debug('Cover page count', { coverPageCount });
 
-    // Step 2: Apply header/footer to body
+    // Get body page count
+    const bodyDoc = await PDFDocument.load(bodyBuffer);
+    const bodyPageCount = bodyDoc.getPageCount();
+    const totalPages = coverPageCount + bodyPageCount;
+
+    logger.debug('Page counts', { coverPageCount, bodyPageCount, totalPages });
+
+    // Step 2: Regenerate cover with total page count for correct footer
+    logger.debug('Regenerating cover with total page count');
+    coverPdfBytes = await generateCover(dto, totalPages);
+
+    // Step 3: Apply header/footer to body with continuous page numbering
     logger.debug('Applying header/footer to body');
-    const stampedBodyBytes = await applyHeaderFooter(bodyBuffer, dto, coverPageCount);
+    const stampedBodyBytes = await applyHeaderFooter(bodyBuffer, dto, coverPageCount, totalPages);
 
-    // Step 3: Merge cover + stamped body
+    // Step 4: Merge cover + stamped body
     logger.debug('Merging cover and body (initial)');
     let mergedPdfBytes = await mergePDFs(coverPdfBytes, stampedBodyBytes);
 
@@ -122,9 +130,9 @@ router.post('/', upload.fields([
         tsaSerial,
       };
 
-      // Regenerate cover with hash/TSA
+      // Regenerate cover with hash/TSA (and total pages)
       logger.debug('Regenerating cover page with hash/TSA');
-      coverPdfBytes = await generateCover(dto);
+      coverPdfBytes = await generateCover(dto, totalPages);
 
       // Re-merge with updated cover
       logger.debug('Merging updated cover and body');

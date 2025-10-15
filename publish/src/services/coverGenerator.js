@@ -20,6 +20,7 @@ import {
   strokeRect,
   drawCellBorders,
   round2,
+  wrapText,
 } from '../utils/pdfUtils.js';
 import logger from '../utils/logger.js';
 
@@ -28,9 +29,11 @@ const BLOCK_SPACING = 30;
 
 /**
  * Generate cover page PDF from DTO
+ * @param {Object} dto - Document DTO
+ * @param {number} totalDocumentPages - Optional total pages in final document (cover + body)
  */
-export async function generateCover(dto) {
-  logger.info('Generating cover page', { docId: dto.document.code });
+export async function generateCover(dto, totalDocumentPages = null) {
+  logger.info('Generating cover page', { docId: dto.document.code, totalDocumentPages });
 
   const manifest = loadManifest();
   const headerFooter = loadHeaderFooter();
@@ -105,8 +108,9 @@ export async function generateCover(dto) {
   }
 
   // Render footers on all pages with correct page numbers
-  const totalPages = pdfDoc.getPageCount();
-  for (let i = 0; i < totalPages; i++) {
+  const coverPageCount = pdfDoc.getPageCount();
+  const totalPages = totalDocumentPages || coverPageCount;
+  for (let i = 0; i < coverPageCount; i++) {
     renderFooter(pdfDoc.getPages()[i], font, dto, headerFooter, pageWidth, leftMargin, rightMargin, i + 1, totalPages);
   }
 
@@ -165,20 +169,33 @@ function renderFooter(page, font, payload, headerFooter, pageWidth, leftMargin, 
     }
   }
 
-  // Draw footer text
+  // Draw footer text with wrapping support
   const footerY = footer.y_position;
   const footerSize = footer.content?.text_size || 7;
-  const footerX = footer.content?.align === 'center'
-    ? (pageWidth - font.widthOfTextAtSize(footerText, footerSize)) / 2
-    : (footer.content?.margin_left || leftMargin);
+  const marginLeft = footer.content?.margin_left || leftMargin;
+  const marginRight = footer.content?.margin_right || rightMargin;
+  const availableWidth = pageWidth - marginLeft - marginRight;
 
-  page.drawText(footerText, {
-    x: footerX,
-    y: footerY,
-    size: footerSize,
-    font: font,
-    color: rgb(0.3, 0.3, 0.3)
-  });
+  // Wrap text if needed
+  const lines = wrapText(font, footerText, availableWidth, footerSize, 0);
+
+  let currentY = footerY;
+  for (const line of lines) {
+    const lineWidth = font.widthOfTextAtSize(line, footerSize);
+    const footerX = footer.content?.align === 'center'
+      ? marginLeft + (availableWidth - lineWidth) / 2
+      : marginLeft;
+
+    page.drawText(line, {
+      x: footerX,
+      y: currentY,
+      size: footerSize,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+
+    currentY -= footerSize * 1.2;
+  }
 }
 
 /**
