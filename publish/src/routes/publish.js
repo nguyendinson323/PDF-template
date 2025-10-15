@@ -6,13 +6,14 @@
 
 import express from 'express';
 import multer from 'multer';
+import { PDFDocument } from 'pdf-lib';
 import { validateDTO, generateOfficialPath, generateStampedPath, requiresHashAndTSA } from '../utils/dtoValidator.js';
 import { generateCover } from '../services/coverGenerator.js';
 import { applyHeaderFooter } from '../services/headerFooterService.js';
 import { mergePDFs } from '../services/pdfMerger.js';
 import { computeSHA256 } from '../services/hashService.js';
 import { getTSATimestamp } from '../services/tsaService.js';
-import { uploadFile } from '../services/s3Service.js';
+import { uploadFile, downloadFile } from '../services/s3Service.js';
 import { buildQRURL } from '../services/qrService.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
@@ -30,6 +31,7 @@ const upload = multer({
 /**
  * POST /publish
  * Generate official published PDF with hash and TSA
+ * Supports both multipart upload and S3 bodySource
  */
 router.post('/', upload.fields([
   { name: 'dto', maxCount: 1 },
@@ -38,19 +40,33 @@ router.post('/', upload.fields([
   const startTime = Date.now();
 
   try {
-    // Parse DTO from uploaded JSON file
-    if (!req.files || !req.files.dto || !req.files.dto[0]) {
-      throw new ValidationError('DTO file is required');
+    // Parse DTO (can be from file upload or request body)
+    let dto;
+    if (req.files && req.files.dto && req.files.dto[0]) {
+      // DTO from multipart upload
+      const dtoBuffer = req.files.dto[0].buffer;
+      dto = JSON.parse(dtoBuffer.toString('utf8'));
+    } else if (req.body && Object.keys(req.body).length > 0) {
+      // DTO from JSON body (for bodySource mode)
+      dto = req.body;
+    } else {
+      throw new ValidationError('DTO is required (either as file or JSON body)');
     }
 
-    if (!req.files.body || !req.files.body[0]) {
-      throw new ValidationError('Body PDF file is required');
+    // Get body PDF (from upload or S3)
+    let bodyBuffer;
+    if (req.files && req.files.body && req.files.body[0]) {
+      // Body from multipart upload
+      bodyBuffer = req.files.body[0].buffer;
+      logger.debug('Body PDF from multipart upload', { size: bodyBuffer.length });
+    } else if (dto.bodySource && dto.bodySource.s3Key) {
+      // Body from S3 (bodySource mode)
+      logger.debug('Fetching body PDF from S3', { s3Key: dto.bodySource.s3Key });
+      bodyBuffer = await downloadFile(dto.bodySource.s3Key);
+      logger.debug('Body PDF downloaded from S3', { size: bodyBuffer.length });
+    } else {
+      throw new ValidationError('Body PDF is required (either as file upload or bodySource.s3Key)');
     }
-
-    const dtoBuffer = req.files.dto[0].buffer;
-    const dto = JSON.parse(dtoBuffer.toString('utf8'));
-
-    const bodyBuffer = req.files.body[0].buffer;
 
     logger.info('Publish request received', {
       docId: dto?.document?.code,
@@ -69,9 +85,14 @@ router.post('/', upload.fields([
     logger.debug('Generating cover page (initial)');
     let coverPdfBytes = await generateCover(dto);
 
+    // Get cover page count for continuous numbering
+    const coverDoc = await PDFDocument.load(coverPdfBytes);
+    const coverPageCount = coverDoc.getPageCount();
+    logger.debug('Cover page count', { coverPageCount });
+
     // Step 2: Apply header/footer to body
     logger.debug('Applying header/footer to body');
-    const stampedBodyBytes = await applyHeaderFooter(bodyBuffer, dto);
+    const stampedBodyBytes = await applyHeaderFooter(bodyBuffer, dto, coverPageCount);
 
     // Step 3: Merge cover + stamped body
     logger.debug('Merging cover and body (initial)');

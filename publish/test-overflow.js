@@ -28,8 +28,7 @@ async function testOverflow() {
     const bodyPath = path.join(__dirname, 'Pack/examples/body.pdf');
     const bodyBuffer = fs.readFileSync(bodyPath);
 
-    // Create FormData
-    const FormData = global.FormData;
+    // Create FormData using native Node.js FormData
     const formData = new FormData();
 
     // Add DTO as JSON blob
@@ -73,6 +72,19 @@ async function testOverflow() {
     }
   } catch (error) {
     console.error('❌ Test failed:', error.message);
+
+    // Check for connection errors
+    const isConnectionError = error.cause?.code === 'ECONNREFUSED' ||
+                              error.cause?.code === 'EACCES' ||
+                              error.cause?.errors?.some(e => e.code === 'ECONNREFUSED');
+
+    if (isConnectionError) {
+      console.error('\n⚠️  Server is not running on http://localhost:8080');
+      console.error('   Start it with: npm start');
+      console.error('   Then run this test again');
+    } else if (error.cause) {
+      console.error('Cause:', error.cause);
+    }
   }
 }
 

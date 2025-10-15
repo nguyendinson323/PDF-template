@@ -12,8 +12,12 @@ import logger from '../utils/logger.js';
 
 /**
  * Apply header and footer to all pages of a PDF
+ * @param {Buffer} bodyPdfBytes - The PDF body to stamp
+ * @param {Object} dto - The document DTO
+ * @param {number} coverPageCount - Number of pages in the cover (for continuous page numbering)
+ * @param {number} totalDocumentPages - Total pages in the complete document (cover + body)
  */
-export async function applyHeaderFooter(bodyPdfBytes, dto) {
+export async function applyHeaderFooter(bodyPdfBytes, dto, coverPageCount = 0, totalDocumentPages = null) {
   logger.info('Applying header/footer', { docId: dto.document.code });
 
   const headerFooter = loadHeaderFooter();
@@ -24,13 +28,18 @@ export async function applyHeaderFooter(bodyPdfBytes, dto) {
   const font = await pdfDoc.embedFont(fontBytes);
 
   const pages = pdfDoc.getPages();
-  const totalPages = pages.length;
+  const bodyPages = pages.length;
+  const totalPages = totalDocumentPages || (coverPageCount + bodyPages);
 
-  logger.debug('Processing pages', { totalPages });
+  logger.debug('Processing pages', {
+    bodyPages,
+    coverPageCount,
+    totalPages
+  });
 
-  for (let i = 0; i < totalPages; i++) {
+  for (let i = 0; i < bodyPages; i++) {
     const page = pages[i];
-    const pageNumber = i + 1;
+    const pageNumber = coverPageCount + i + 1; // Continue from cover pages
 
     // Apply header
     applyHeader(page, font, dto, headerFooter);
@@ -42,7 +51,7 @@ export async function applyHeaderFooter(bodyPdfBytes, dto) {
   const stampedBytes = await pdfDoc.save();
   logger.info('Header/footer applied', {
     docId: dto.document.code,
-    pages: totalPages,
+    pages: bodyPages,
     size: stampedBytes.length,
   });
 
@@ -130,7 +139,9 @@ function applyFooter(page, font, dto, headerFooter, pageNumber, totalPages) {
   // Draw footer text
   const footerY = footer.y_position;
   const footerSize = footer.content?.text_size || 7;
-  const availableWidth = pageWidth - (footer.content?.margin_left || 0) - (footer.content?.margin_right || 0);
+  const marginLeft = footer.content?.margin_left || leftMargin;
+  const marginRight = footer.content?.margin_right || rightMargin;
+  const availableWidth = pageWidth - marginLeft - marginRight;
 
   // Wrap text if needed
   const lines = wrapText(font, footerText, availableWidth, footerSize, 0);
@@ -139,8 +150,8 @@ function applyFooter(page, font, dto, headerFooter, pageNumber, totalPages) {
   for (const line of lines) {
     const lineWidth = font.widthOfTextAtSize(line, footerSize);
     const footerX = footer.content?.align === 'center'
-      ? (pageWidth - lineWidth) / 2
-      : (footer.content?.margin_left || leftMargin);
+      ? marginLeft + (availableWidth - lineWidth) / 2
+      : marginLeft;
 
     page.drawText(line, {
       x: footerX,
