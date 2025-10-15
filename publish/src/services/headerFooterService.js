@@ -1,55 +1,91 @@
 // ==================================================================================
 // Header/Footer Stamping Service
 // ==================================================================================
-// Applies headers and footers to existing PDF pages
+// Creates new pages with cover template structure and embeds body content
 // ==================================================================================
 
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { loadHeaderFooter, loadRegularFont } from './templateService.js';
-import { resolveTemplate, wrapText } from '../utils/pdfUtils.js';
+import { resolveTemplate, wrapText, makeStroker, drawCellBorders, getTextContent, drawMultilineText } from '../utils/pdfUtils.js';
+import { generateQRCode, buildQRURL } from './qrService.js';
 import logger from '../utils/logger.js';
 
 /**
  * Apply header and footer to all pages of a PDF
- * @param {Buffer} bodyPdfBytes - The PDF body to stamp
+ * Creates new pages with cover template structure and embeds body content
+ * @param {Buffer} bodyPdfBytes - The PDF body to embed
  * @param {Object} dto - The document DTO
  * @param {number} coverPageCount - Number of pages in the cover (for continuous page numbering)
  * @param {number} totalDocumentPages - Total pages in the complete document (cover + body)
  */
 export async function applyHeaderFooter(bodyPdfBytes, dto, coverPageCount = 0, totalDocumentPages = null) {
-  logger.info('Applying header/footer', { docId: dto.document.code });
+  logger.info('Applying header/footer to body pages', { docId: dto.document.code });
 
   const headerFooter = loadHeaderFooter();
-  const pdfDoc = await PDFDocument.load(bodyPdfBytes);
-  pdfDoc.registerFontkit(fontkit);
+  const { width: pageWidth, height: pageHeight, margins } = headerFooter.page;
+  const { left: leftMargin, right: rightMargin } = margins;
 
-  const fontBytes = loadRegularFont();
-  const font = await pdfDoc.embedFont(fontBytes);
+  // Body content area: same as where tables start on cover
+  const contentMarginTop = 30; // Same as FIRMAS table margin_top
+  const contentStartY = headerFooter.header.y_position + headerFooter.header.height - contentMarginTop;
+  const contentEndY = headerFooter.footer.separator_line.y_position;
+  const usableWidth = pageWidth - leftMargin - rightMargin;
+  const usableHeight = contentStartY - contentEndY;
 
-  const pages = pdfDoc.getPages();
-  const bodyPages = pages.length;
+  // Load the original body PDF to extract pages from
+  const originalBodyDoc = await PDFDocument.load(bodyPdfBytes);
+  const bodyPages = originalBodyDoc.getPageCount();
   const totalPages = totalDocumentPages || (coverPageCount + bodyPages);
 
-  logger.debug('Processing pages', {
+  logger.debug('Processing body pages', {
     bodyPages,
     coverPageCount,
-    totalPages
+    totalPages,
+    usableArea: { width: usableWidth, height: usableHeight }
   });
 
+  // Create a new PDF document for the stamped body
+  const newDoc = await PDFDocument.create();
+  newDoc.registerFontkit(fontkit);
+
+  const fontBytes = loadRegularFont();
+  const font = await newDoc.embedFont(fontBytes);
+
+  // Generate QR code once for all pages
+  const qrUrl = buildQRURL(dto);
+  const qrBuffer = await generateQRCode(qrUrl, 150);
+  const qrImage = await newDoc.embedPng(qrBuffer);
+
+  // Process each body page
   for (let i = 0; i < bodyPages; i++) {
-    const page = pages[i];
-    const pageNumber = coverPageCount + i + 1; // Continue from cover pages
+    const pageNumber = coverPageCount + i + 1;
 
-    // Apply header
-    applyHeader(page, font, dto, headerFooter);
+    // Create a new page with template dimensions
+    const newPage = newDoc.addPage([pageWidth, pageHeight]);
+    const stroke = makeStroker(newPage, rgb(0, 0, 0), 0.5);
 
-    // Apply footer
-    applyFooter(page, font, dto, headerFooter, pageNumber, totalPages);
+    // Render the cover-style header on this page
+    await renderBodyPageHeader(newPage, font, dto, headerFooter, leftMargin, qrImage, stroke);
+
+    // Embed the original body page content in the content area
+    // Start at same Y as FIRMAS table, end at footer separator
+    const [embeddedPage] = await newDoc.embedPdf(originalBodyDoc, [i]);
+
+    // Draw the embedded page in the content area
+    newPage.drawPage(embeddedPage, {
+      x: leftMargin,
+      y: contentEndY,
+      width: usableWidth,
+      height: usableHeight,
+    });
+
+    // Render footer
+    renderBodyPageFooter(newPage, font, dto, headerFooter, pageWidth, leftMargin, rightMargin, pageNumber, totalPages);
   }
 
-  const stampedBytes = await pdfDoc.save();
-  logger.info('Header/footer applied', {
+  const stampedBytes = await newDoc.save();
+  logger.info('Header/footer applied to body pages', {
     docId: dto.document.code,
     pages: bodyPages,
     size: stampedBytes.length,
@@ -59,45 +95,110 @@ export async function applyHeaderFooter(bodyPdfBytes, dto, coverPageCount = 0, t
 }
 
 /**
- * Apply header to a single page
+ * Render header on body page (same structure as cover)
  */
-function applyHeader(page, font, dto, headerFooter) {
-  // Simple header for body pages (not the full cover header)
-  const { width: pageWidth } = page.getSize();
-  const { left: leftMargin, right: rightMargin } = headerFooter.page.margins;
+async function renderBodyPageHeader(page, font, dto, headerFooter, leftMargin, qrImage, stroke) {
+  let currentY = headerFooter.header.y_position + headerFooter.header.height;
 
-  // Render a simple header with document code and title
-  const headerY = headerFooter.header.y_position + headerFooter.header.height - 30;
-  const headerText = `${dto.document.code} - ${dto.document.title}`;
-  const headerSize = 9;
+  // Render each row from the header template
+  for (const row of headerFooter.header.rows) {
+    const rowHeight = row.height === 'auto' ? 57 : row.height; // Use calculated height for auto
+    let currentX = leftMargin;
 
-  const maxWidth = pageWidth - leftMargin - rightMargin;
-  const textWidth = font.widthOfTextAtSize(headerText, headerSize);
+    // Render columns in the row
+    for (const col of row.columns) {
+      const colWidth = col.width;
 
-  let displayText = headerText;
-  if (textWidth > maxWidth) {
-    // Truncate if too long
-    displayText = headerText.substring(0, 50) + '...';
+      // Draw cell borders
+      drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
+
+      // Render content based on type
+      if (col.type === 'image' && col.id === 'qr_code') {
+        // Draw QR code
+        const qrSize = 50;
+        const qrX = currentX + (colWidth - qrSize) / 2;
+        const qrY = currentY - (rowHeight + qrSize) / 2;
+        page.drawImage(qrImage, {
+          x: qrX,
+          y: qrY,
+          width: qrSize,
+          height: qrSize,
+        });
+      } else if (col.type === 'image' && col.id === 'company_logo') {
+        // Draw logo placeholder
+        const logoX = currentX + 4;
+        const logoY = currentY - rowHeight + 4;
+        const logoWidth = colWidth - 8;
+        const logoHeight = rowHeight - 8;
+        page.drawRectangle({
+          x: logoX,
+          y: logoY,
+          width: logoWidth,
+          height: logoHeight,
+          borderColor: rgb(0.7, 0.7, 0.7),
+          borderWidth: 1,
+        });
+        const placeholderText = 'LOGO';
+        const textWidth = font.widthOfTextAtSize(placeholderText, 15);
+        const textX = logoX + (logoWidth - textWidth) / 2;
+        const textY = logoY + (logoHeight - 15) / 2;
+        page.drawText(placeholderText, {
+          x: textX,
+          y: textY,
+          size: 15,
+          font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+      } else if (col.type === 'container' && col.rows) {
+        // Handle container with sub-rows
+        let containerY = currentY;
+        for (const subRow of col.rows) {
+          const subHeight = subRow.height;
+          drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
+
+          const textContent = getTextContent(subRow, dto);
+          if (textContent && subRow.type !== 'image') {
+            const textSize = subRow.text_size || 9;
+            drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+          }
+
+          containerY -= subHeight;
+        }
+      } else if (row.type === 'columns' && col.columns) {
+        // Handle nested columns
+        let colX = currentX;
+        for (const nestedCol of col.columns) {
+          const nestedWidth = nestedCol.width;
+          drawCellBorders(stroke, nestedCol, colX, currentY, nestedWidth, rowHeight);
+
+          const textContent = getTextContent(nestedCol, dto);
+          if (textContent) {
+            const textSize = nestedCol.text_size || 9;
+            drawMultilineText(page, font, textContent, colX, currentY - rowHeight, nestedWidth, rowHeight, textSize, nestedCol.align);
+          }
+          colX += nestedWidth;
+        }
+      } else {
+        // Regular text cell
+        const textContent = getTextContent(col, dto);
+        if (textContent) {
+          const textSize = col.text_size || 9;
+          drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+        }
+      }
+
+      currentX += colWidth;
+    }
+
+    currentY -= rowHeight;
   }
-
-  const textX = (pageWidth - font.widthOfTextAtSize(displayText, headerSize)) / 2;
-
-  page.drawText(displayText, {
-    x: textX,
-    y: headerY,
-    size: headerSize,
-    font,
-    color: rgb(0.3, 0.3, 0.3),
-  });
 }
 
 /**
- * Apply footer to a single page
+ * Render footer on body page
  */
-function applyFooter(page, font, dto, headerFooter, pageNumber, totalPages) {
+function renderBodyPageFooter(page, font, dto, headerFooter, pageWidth, leftMargin, rightMargin, pageNumber, totalPages) {
   const footer = headerFooter.footer;
-  const { width: pageWidth } = page.getSize();
-  const { left: leftMargin, right: rightMargin } = headerFooter.page.margins;
 
   // Draw separator line
   if (footer.separator_line && footer.separator_line.enabled) {
