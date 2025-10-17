@@ -393,7 +393,7 @@ function renderLogoPlaceholder(page, font, x, y, width, height) {
 
 /**
  * Build dynamic rows for FIRMAS Y APROBACIONES table
- * Supports multiple reviewers and approvers (unlimited)
+ * Supports arrays for ALL participant types (creator, reviewers, qac, approvers, dcontrol, etc.)
  * Returns array of objects with row data and merge information
  */
 function buildFirmasRows(rowTemplates, payload) {
@@ -402,49 +402,15 @@ function buildFirmasRows(rowTemplates, payload) {
   for (const rowTemplate of rowTemplates) {
     const action = rowTemplate.cells[0].text;
 
-    // Handle arrays (reviewers and approvers) - merge Acción cells
-    if (action === 'Revisó' && payload.participants?.reviewers) {
-      const reviewers = payload.participants.reviewers; // Support unlimited reviewers
-      reviewers.forEach((reviewer, idx) => {
-        rows.push({
-          data: [
-            action,
-            reviewer.name || '',
-            reviewer.jobTitle || '',
-            payload.checklists?.review?.[idx]?.id || '',
-            payload.checklists?.review?.[idx]?.date || '',
-            payload.checklists?.review?.[idx]?.status || ''
-          ],
-          mergeFirstCell: idx > 0, // Merge Acción cell for rows after the first
-          mergeGroup: 'Revisó',
-          mergeRowCount: reviewers.length
-        });
-      });
-    } else if (action === 'Aprobó' && payload.participants?.approvers) {
-      const approvers = payload.participants.approvers; // Support unlimited approvers
-      approvers.forEach((approver, idx) => {
-        rows.push({
-          data: [
-            action,
-            approver.name || '',
-            approver.jobTitle || '',
-            payload.checklists?.approval?.[idx]?.id || '',
-            payload.checklists?.approval?.[idx]?.date || '',
-            payload.checklists?.approval?.[idx]?.status || ''
-          ],
-          mergeFirstCell: idx > 0, // Merge Acción cell for rows after the first
-          mergeGroup: 'Aprobó',
-          mergeRowCount: approvers.length
-        });
-      });
-    } else {
-      // Handle single entries (Elaboró, QAC, Publicó)
+    // Extract participant and checklist data from template sources
+    const participantMatch = rowTemplate.cells[1]?.source?.match(/participants\.(\w+)(\[0\])?\.name/);
+    const checklistMatch = rowTemplate.cells[3]?.source?.match(/checklists\.(\w+)(\[0\])?\.id/);
+
+    if (!participantMatch) {
+      // Fallback: render as-is if no participant source found
       const rowData = rowTemplate.cells.map(cell => {
-        if (cell.text) {
-          return cell.text;
-        } else if (cell.source) {
-          return resolveTemplate(cell.source, payload) || '';
-        }
+        if (cell.text) return cell.text;
+        if (cell.source) return resolveTemplate(cell.source, payload) || '';
         return '';
       });
       rows.push({
@@ -453,7 +419,42 @@ function buildFirmasRows(rowTemplates, payload) {
         mergeGroup: null,
         mergeRowCount: 1
       });
+      continue;
     }
+
+    const participantKey = participantMatch[1]; // e.g., 'creator', 'reviewers', 'qac', 'approvers', 'dcontrol'
+    const checklistKey = checklistMatch?.[1] || participantKey; // e.g., 'creator', 'review', 'qac', 'approval', 'publish'
+
+    const participantData = payload.participants?.[participantKey];
+    const checklistData = payload.checklists?.[checklistKey];
+
+    if (!participantData) {
+      // No data for this participant type, skip
+      continue;
+    }
+
+    // Check if participantData is an array or single object
+    const participants = Array.isArray(participantData) ? participantData : [participantData];
+    const checklists = Array.isArray(checklistData) ? checklistData : [checklistData];
+
+    // Generate rows for all participants
+    participants.forEach((participant, idx) => {
+      const checklist = checklists[idx] || checklists[0] || {};
+
+      rows.push({
+        data: [
+          action,
+          participant.name || '',
+          participant.jobTitle || '',
+          checklist.id || '',
+          checklist.date || '',
+          checklist.status || ''
+        ],
+        mergeFirstCell: idx > 0, // Merge Acción cell for rows after the first
+        mergeGroup: action,
+        mergeRowCount: participants.length
+      });
+    });
   }
 
   return rows;
