@@ -10,6 +10,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { loadManifest, loadHeaderFooter, loadRegularFont } from './templateService.js';
 import { generateQRCode, buildQRURL } from './qrService.js';
+import { applyHeaderFooter } from './headerFooterService.js';
 import {
   resolveTemplate,
   getTextContent,
@@ -20,7 +21,6 @@ import {
   strokeRect,
   drawCellBorders,
   round2,
-  wrapText,
 } from '../utils/pdfUtils.js';
 import logger from '../utils/logger.js';
 
@@ -107,101 +107,23 @@ export async function generateCover(dto, totalDocumentPages = null) {
     stroke = result.stroke;
   }
 
-  // Render footers on all pages with correct page numbers
+  // Apply headers and footers using centralized service
   const coverPageCount = pdfDoc.getPageCount();
   const totalPages = totalDocumentPages || coverPageCount;
-  for (let i = 0; i < coverPageCount; i++) {
-    renderFooter(pdfDoc.getPages()[i], font, dto, headerFooter, pageWidth, leftMargin, rightMargin, i + 1, totalPages);
-  }
 
-  // Save and return PDF bytes
-  const pdfBytes = await pdfDoc.save();
+  // Save PDF bytes without footers first
+  const pdfBytesWithoutFooters = await pdfDoc.save();
+
+  // Apply headers and footers using headerFooterService
+  const pdfBytes = await applyHeaderFooter(pdfBytesWithoutFooters, dto, 0, totalPages);
+
   logger.info('Cover page generated', {
     docId: dto.document.code,
-    pages: pdfDoc.getPageCount(),
+    pages: coverPageCount,
     size: pdfBytes.length,
   });
 
   return pdfBytes;
-}
-
-/**
- * Render footer on a page with page numbers
- */
-function renderFooter(page, font, payload, headerFooter, pageWidth, leftMargin, rightMargin, pageNumber, totalPages) {
-  const footer = headerFooter.footer;
-
-  // Draw separator line
-  if (footer.separator_line && footer.separator_line.enabled) {
-    const lineY = footer.separator_line.y_position;
-    const lineX1 = leftMargin + footer.separator_line.margin_left;
-    const lineX2 = pageWidth - rightMargin - footer.separator_line.margin_right;
-
-    page.drawLine({
-      start: { x: lineX1, y: lineY },
-      end: { x: lineX2, y: lineY },
-      color: rgb(0, 0, 0),
-      thickness: footer.separator_line.thickness
-    });
-  }
-
-  // Build composite footer text from elements
-  const elements = footer.content?.elements || [];
-  let footerText = '';
-
-  for (const elem of elements) {
-    if (elem.text) {
-      // Replace page number placeholders
-      let text = elem.text;
-      text = text.replace('{v}', pageNumber.toString());
-      text = text.replace('{h}', totalPages.toString());
-      footerText += text;
-    } else if (elem.source) {
-      const resolved = resolveTemplate(elem.source, payload);
-      if (resolved) {
-        // Truncate hash to last 8 characters for display
-        if (elem.source.includes('hashSha256') && resolved.length > 8) {
-          footerText += resolved.substring(resolved.length - 8);
-        }
-        // Extract only the correlative number (e.g., "R-Final-001" -> "001")
-        else if (elem.source.includes('correlativocurrentPhase')) {
-          const parts = resolved.split('-');
-          footerText += parts[parts.length - 1];
-        }
-        else {
-          footerText += resolved;
-        }
-      }
-    }
-  }
-
-  // Draw footer text with wrapping support
-  const footerY = footer.y_position;
-  const footerSize = footer.content?.text_size || 7;
-  const marginLeft = footer.content?.margin_left || leftMargin;
-  const marginRight = footer.content?.margin_right || rightMargin;
-  const availableWidth = pageWidth - marginLeft - marginRight;
-
-  // Wrap text if needed
-  const lines = wrapText(font, footerText, availableWidth, footerSize, 0);
-
-  let currentY = footerY;
-  for (const line of lines) {
-    const lineWidth = font.widthOfTextAtSize(line, footerSize);
-    const footerX = footer.content?.align === 'center'
-      ? marginLeft + (availableWidth - lineWidth) / 2
-      : marginLeft;
-
-    page.drawText(line, {
-      x: footerX,
-      y: currentY,
-      size: footerSize,
-      font: font,
-      color: rgb(0.3, 0.3, 0.3)
-    });
-
-    currentY -= footerSize * 1.2;
-  }
 }
 
 /**
@@ -238,36 +160,61 @@ async function renderTableHeaderOnNewPage(page, font, stroke, tableConfig, table
 
 /**
  * Render cover header with logo, title, QR code
+ * Uses EXACT rendering logic from headerFooterService applyHeader()
  */
 async function renderCoverHeader(context) {
   const { page, font, stroke, payload, headerFooter, leftMargin, pdfDoc } = context;
   let { currentY } = context;
 
-  for (const row of headerFooter.header.rows) {
+  for (let rowIndex = 0; rowIndex < headerFooter.header.rows.length; rowIndex++) {
+    const row = headerFooter.header.rows[rowIndex];
+
     let rowHeight = row.height;
-    if (rowHeight === 'auto') {
+    if (rowHeight === "auto") {
       const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
       if (containerCol) {
         rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
       }
     }
 
-    // Calculate dynamic height
+    // Calculate dynamic height (from headerFooterService logic)
     let calculatedHeight = rowHeight;
     for (const col of row.columns) {
       if (col.type === 'container' && col.rows) {
         let containerTotalHeight = 0;
         for (const subRow of col.rows) {
           let subRowHeight = subRow.height;
-          const textContent = getTextContent(subRow, payload);
-          if (textContent && subRow.type !== 'image') {
-            const textSize = subRow.text_size || 9;
-            const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
-            subRowHeight = Math.max(subRowHeight, cellHeight);
+
+          if (subRow.type === 'columns' && subRow.columns) {
+            for (const subCol of subRow.columns) {
+              const textContent = getTextContent(subCol, payload);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+                subRowHeight = Math.max(subRowHeight, cellHeight);
+              }
+            }
+          } else {
+            const textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
+              subRowHeight = Math.max(subRowHeight, cellHeight);
+            }
           }
+
           containerTotalHeight += subRowHeight;
         }
         calculatedHeight = Math.max(calculatedHeight, containerTotalHeight);
+      } else if (col.type === 'columns' && col.columns) {
+        for (const subCol of col.columns) {
+          const textContent = getTextContent(subCol, payload);
+          if (textContent && subCol.type !== 'image') {
+            const textSize = subCol.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+            calculatedHeight = Math.max(calculatedHeight, cellHeight);
+          }
+        }
       } else if (col.type !== 'image') {
         const textContent = getTextContent(col, payload);
         if (textContent) {
@@ -281,65 +228,123 @@ async function renderCoverHeader(context) {
     rowHeight = calculatedHeight;
     let currentX = leftMargin;
 
-    // Render columns
-    for (const col of row.columns) {
+    // Render columns (exact headerFooterService logic)
+    for (let colIndex = 0; colIndex < row.columns.length; colIndex++) {
+      const col = row.columns[colIndex];
       const colWidth = col.width;
 
       if (col.type === 'container' && col.rows) {
         let containerY = currentY;
+        const subRowHeights = [];
+
         for (const subRow of col.rows) {
           let subHeight = subRow.height;
-          let textContent = getTextContent(subRow, payload);
-          if (textContent && subRow.type !== 'image') {
-            const textSize = subRow.text_size || 9;
-            const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize);
-            subHeight = Math.max(subHeight, cellHeight);
+
+          if (subRow.type === 'columns' && subRow.columns) {
+            for (const subCol of subRow.columns) {
+              const textContent = getTextContent(subCol, payload);
+              if (textContent && subCol.type !== 'image') {
+                const textSize = subCol.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+                subHeight = Math.max(subHeight, cellHeight);
+              }
+            }
+          } else {
+            const textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              const textSize = subRow.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize);
+              subHeight = Math.max(subHeight, cellHeight);
+            }
           }
 
-          drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
+          subRowHeights.push(subHeight);
+        }
 
-          if (textContent && subRow.type !== 'image') {
-            // Extract only correlative number (e.g., "R-Final-001" -> "001")
-            if (subRow.id === 'correlative_current_phase' && subRow.source?.includes('correlativocurrentPhase')) {
-              const parts = textContent.split('-');
-              textContent = parts[parts.length - 1];
+        for (let i = 0; i < col.rows.length; i++) {
+          const subRow = col.rows[i];
+          const subHeight = subRowHeights[i];
+
+          if (subRow.type === 'columns' && subRow.columns) {
+            let subX = currentX;
+            for (let subColIdx = 0; subColIdx < subRow.columns.length; subColIdx++) {
+              const subCol = subRow.columns[subColIdx];
+              drawCellBorders(stroke, subCol, subX, containerY, subCol.width, subHeight);
+
+              let textContent = getTextContent(subCol, payload);
+
+              if (textContent && subCol.type !== 'image') {
+                // Extract correlative number
+                if (subCol.id === 'correlative_current_phase' && subCol.source?.includes('correlativocurrentPhase')) {
+                  const parts = textContent.split('-');
+                  textContent = parts[parts.length - 1];
+                }
+                const textSize = subCol.text_size || 9;
+                drawMultilineText(page, font, textContent, subX, containerY - subHeight, subCol.width, subHeight, textSize, subCol.align);
+              }
+
+              subX += subCol.width;
             }
-            const textSize = subRow.text_size || 9;
-            drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+          } else {
+            drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
+
+            let textContent = getTextContent(subRow, payload);
+            if (textContent && subRow.type !== 'image') {
+              // Extract correlative number
+              if (subRow.id === 'correlative_current_phase' && subRow.source?.includes('correlativocurrentPhase')) {
+                const parts = textContent.split('-');
+                textContent = parts[parts.length - 1];
+              }
+              const textSize = subRow.text_size || 9;
+              drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+            }
           }
 
           containerY -= subHeight;
+        }
+      } else if (col.type === 'columns' && col.columns) {
+        let subX = currentX;
+        for (const subCol of col.columns) {
+          drawCellBorders(stroke, subCol, subX, currentY, subCol.width, rowHeight);
+
+          let textContent = getTextContent(subCol, payload);
+          if (textContent && subCol.type !== 'image') {
+            // Extract correlative number
+            if (subCol.id === 'correlative_current_phase' && subCol.source?.includes('correlativocurrentPhase')) {
+              const parts = textContent.split('-');
+              textContent = parts[parts.length - 1];
+            }
+            const textSize = subCol.text_size || 9;
+            drawMultilineText(page, font, textContent, subX, currentY - rowHeight, subCol.width, rowHeight, textSize, subCol.align);
+          }
+
+          subX += subCol.width;
         }
       } else {
         drawCellBorders(stroke, col, currentX, currentY, colWidth, rowHeight);
 
         if (col.type === 'image' && col.source) {
-          const imageData = resolveTemplate(col.source, payload);
-
           if (col.id === 'qr_code') {
-            // Generate and render QR code
-            const qrUrl = buildQRURL(payload);
-            const qrBuffer = await generateQRCode(qrUrl, 150);
-            const qrImage = await pdfDoc.embedPng(qrBuffer);
-
             const qrSize = 50;
             const qrX = currentX + (colWidth - qrSize) / 2;
             const qrY = currentY - (rowHeight + qrSize) / 2;
-
-            page.drawImage(qrImage, {
-              x: qrX,
-              y: qrY,
-              width: qrSize,
-              height: qrSize,
-            });
-          } else if (col.id === 'company_logo') {
-            // Render logo placeholder
-            renderLogoPlaceholder(page, font, currentX + 4, currentY - rowHeight + 4, colWidth - 8, rowHeight - 8);
+            const qrUrl = buildQRURL(payload);
+            const qrBuffer = await generateQRCode(qrUrl, 150);
+            const qrImage = await pdfDoc.embedPng(qrBuffer);
+            page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+          } else {
+            // Logo placeholder
+            const logoMargin = 4;
+            const logoWidth = colWidth - (logoMargin * 2);
+            const logoHeight = rowHeight - (logoMargin * 2);
+            const logoX = currentX + logoMargin;
+            const logoY = currentY - rowHeight + logoMargin;
+            renderLogoPlaceholder(page, font, logoX, logoY, logoWidth, logoHeight);
           }
         } else {
           let textContent = getTextContent(col, payload);
           if (textContent) {
-            // Extract only correlative number (e.g., "R-Final-001" -> "001")
+            // Extract correlative number
             if (col.id === 'correlative_current_phase' && col.source?.includes('correlativocurrentPhase')) {
               const parts = textContent.split('-');
               textContent = parts[parts.length - 1];
