@@ -17,6 +17,7 @@ import { uploadFile, downloadFile } from '../services/s3Service.js';
 import { buildQRURL } from '../services/qrService.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
+import { writeFileSync } from 'fs';
 
 const router = express.Router();
 
@@ -101,6 +102,10 @@ router.post('/', upload.fields([
     // Step 3: Apply header/footer to body with continuous page numbering
     logger.debug('Applying header/footer to body');
     const stampedBodyBytes = await applyHeaderFooter(bodyBuffer, dto, coverPageCount, totalPages);
+
+    // DEBUG: Save stamped body before merge
+    writeFileSync('./stamped-body-before-merge.pdf', stampedBodyBytes);
+    logger.debug('Saved stamped body for debugging');
 
     // Step 4: Merge cover + stamped body
     logger.debug('Merging cover and body (initial)');

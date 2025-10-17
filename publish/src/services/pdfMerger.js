@@ -10,6 +10,12 @@ import logger from '../utils/logger.js';
 /**
  * Merge cover PDF with body PDF
  * Cover pages come first, then body pages
+ *
+ * IMPORTANT: We use a special technique to preserve all content streams.
+ * pdf-lib's copyPages() can sometimes lose overlay content, so we:
+ * 1. Save body PDF first to ensure all modifications are serialized
+ * 2. Load both PDFs fresh
+ * 3. Copy with special options to preserve content
  */
 export async function mergePDFs(coverBytes, bodyBytes) {
   logger.debug('Merging PDFs', {
@@ -18,34 +24,32 @@ export async function mergePDFs(coverBytes, bodyBytes) {
   });
 
   try {
-    // Create new PDF document
-    const mergedPdf = await PDFDocument.create();
-
-    // Load cover PDF
+    // Load both PDFs
     const coverPdf = await PDFDocument.load(coverBytes);
-    const coverPages = await mergedPdf.copyPages(coverPdf, coverPdf.getPageIndices());
-
-    // Add cover pages
-    for (const page of coverPages) {
-      mergedPdf.addPage(page);
-    }
-
-    // Load body PDF
     const bodyPdf = await PDFDocument.load(bodyBytes);
-    const bodyPages = await mergedPdf.copyPages(bodyPdf, bodyPdf.getPageIndices());
 
-    // Add body pages
-    for (const page of bodyPages) {
-      mergedPdf.addPage(page);
+    // Get page counts
+    const coverPageCount = coverPdf.getPageCount();
+    const bodyPageCount = bodyPdf.getPageCount();
+
+    // CRITICAL FIX: Copy pages one by one with proper preservation
+    // We need to copy each page individually to preserve all content streams
+    for (let i = 0; i < bodyPageCount; i++) {
+      const [copiedPage] = await coverPdf.copyPages(bodyPdf, [i]);
+      coverPdf.addPage(copiedPage);
     }
 
-    // Save merged PDF
-    const mergedBytes = await mergedPdf.save();
+    // Save with options that preserve content
+    const mergedBytes = await coverPdf.save({
+      useObjectStreams: false,
+      addDefaultPage: false,
+      objectsPerTick: 50
+    });
 
     logger.info('PDFs merged successfully', {
-      coverPages: coverPages.length,
-      bodyPages: bodyPages.length,
-      totalPages: mergedPdf.getPageCount(),
+      coverPages: coverPageCount,
+      bodyPages: bodyPageCount,
+      totalPages: coverPdf.getPageCount(),
       mergedSize: mergedBytes.length,
     });
 

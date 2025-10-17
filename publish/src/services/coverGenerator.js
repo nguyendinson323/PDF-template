@@ -140,7 +140,7 @@ function renderFooter(page, font, payload, headerFooter, pageWidth, leftMargin, 
     page.drawLine({
       start: { x: lineX1, y: lineY },
       end: { x: lineX2, y: lineY },
-      color: rgb(0, 0, 1),
+      color: rgb(0, 0, 0),
       thickness: footer.separator_line.thickness
     });
   }
@@ -289,7 +289,7 @@ async function renderCoverHeader(context) {
         let containerY = currentY;
         for (const subRow of col.rows) {
           let subHeight = subRow.height;
-          const textContent = getTextContent(subRow, payload);
+          let textContent = getTextContent(subRow, payload);
           if (textContent && subRow.type !== 'image') {
             const textSize = subRow.text_size || 9;
             const cellHeight = calculateTextHeight(font, textContent, colWidth, textSize);
@@ -299,6 +299,11 @@ async function renderCoverHeader(context) {
           drawCellBorders(stroke, subRow, currentX, containerY, colWidth, subHeight);
 
           if (textContent && subRow.type !== 'image') {
+            // Extract only correlative number (e.g., "R-Final-001" -> "001")
+            if (subRow.id === 'correlative_current_phase' && subRow.source?.includes('correlativocurrentPhase')) {
+              const parts = textContent.split('-');
+              textContent = parts[parts.length - 1];
+            }
             const textSize = subRow.text_size || 9;
             drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
           }
@@ -332,8 +337,13 @@ async function renderCoverHeader(context) {
             renderLogoPlaceholder(page, font, currentX + 4, currentY - rowHeight + 4, colWidth - 8, rowHeight - 8);
           }
         } else {
-          const textContent = getTextContent(col, payload);
+          let textContent = getTextContent(col, payload);
           if (textContent) {
+            // Extract only correlative number (e.g., "R-Final-001" -> "001")
+            if (col.id === 'correlative_current_phase' && col.source?.includes('correlativocurrentPhase')) {
+              const parts = textContent.split('-');
+              textContent = parts[parts.length - 1];
+            }
             const textSize = col.text_size || 9;
             drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
           }

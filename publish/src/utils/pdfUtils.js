@@ -5,6 +5,8 @@
 // Text wrapping, alignment, height calculation
 // ==================================================================================
 
+import { rgb } from 'pdf-lib';
+
 const LINE_SPACING = 1.2;
 const TEXT_MARGIN = 4;
 
@@ -160,7 +162,7 @@ export function drawMultilineText(page, font, text, x, yBottom, width, height, s
       y: currentY,
       size: size,
       font: font,
-      color: { type: 'RGB', red: 0, green: 0, blue: 0 },
+      color: rgb(0, 0, 0),
     });
 
     currentY -= lineHeight;

@@ -5,7 +5,12 @@
     "publicationDate": "2025-03-12",
     "semanticVersion": "v2.0.0",
     "brand": { "logoUrl": "https://assets.passfy.io/logo.png" },
-    "qr": { "baseUrl": "https://verify.passfy.io/doc" },
+    "qr": { "baseUrl": "https://verify.passfy.io/doc/" },
+    "security": {
+      "hashSha256": "b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3",
+      "tsaTime": "2025-03-13T09:15:00Z",
+      "tsaSerial": "TSA-2025-001"
+    },
     "storage": { "s3Key": "" },
     "folderPath": "/GOV/PRC/PAS-L1-GOV-PRC-001",
     "s3Refs": {

@@ -5,7 +5,12 @@
     "publicationDate": "2025-10-05",
     "semanticVersion": "v2.0.0",
     "brand": { "logoUrl": "https://assets.passfy.io/logo.png" },
-    "qr": { "baseUrl": "https://verify.passfy.io/doc" },
+    "qr": { "baseUrl": "https://verify.passfy.io/doc/" },
+    "security": {
+      "hashSha256": "a3f2b9c8d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0",
+      "tsaTime": "2025-10-05T14:30:00Z",
+      "tsaSerial": "TSA-2025-003"
+    },
     "storage": { "s3Key": "" },
     "folderPath": "/PKI/ESP/PAS-L2-PKI-ESP-003",
     "s3Refs": {
@@ -29,5 +34,101 @@
     "destinationPhase": "V-Major",
     "hasDiffReport": true,
     "checklistsAllApproved": false
-  }
+  },
+  "participants": {
+    "creator": {
+      "name": "Carlos Martinez",
+      "jobTitle": "Security Engineer",
+      "signature": null
+    },
+    "reviewers": [
+      {
+        "name": "Ana Garcia",
+        "jobTitle": "Senior Engineer",
+        "signature": null
+      },
+      {
+        "name": "Luis Fernandez",
+        "jobTitle": "Technical Lead",
+        "signature": null
+      }
+    ],
+    "qac": {
+      "name": "Maria Lopez",
+      "jobTitle": "QAC Manager",
+      "signature": null
+    },
+    "approvers": [
+      {
+        "name": "Roberto Silva",
+        "jobTitle": "Director of Engineering",
+        "signature": null
+      },
+      {
+        "name": "Sofia Rodriguez",
+        "jobTitle": "VP Technology",
+        "signature": null
+      }
+    ],
+    "dcontrol": {
+      "name": "Miguel Santos",
+      "jobTitle": "Document Control Specialist",
+      "signature": null
+    }
+  },
+  "checklists": {
+    "creator": {
+      "id": "CL-PKI-001",
+      "date": "2025-09-28",
+      "status": "Completed"
+    },
+    "review": [
+      {
+        "id": "CL-PKI-002",
+        "date": "2025-09-30",
+        "status": "Completed"
+      },
+      {
+        "id": "CL-PKI-003",
+        "date": "2025-10-01",
+        "status": "Completed"
+      }
+    ],
+    "qac": {
+      "id": "CL-PKI-004",
+      "date": "2025-10-02",
+      "status": "Completed"
+    },
+    "approval": [
+      {
+        "id": "CL-PKI-005",
+        "date": "2025-10-03",
+        "status": "Approved"
+      },
+      {
+        "id": "CL-PKI-006",
+        "date": "2025-10-04",
+        "status": "Approved"
+      }
+    ],
+    "publish": {
+      "id": "CL-PKI-007",
+      "date": "2025-10-05",
+      "status": "Published"
+    }
+  },
+  "revision_history": [
+    {
+      "version": "v2.0.0",
+      "date": "2025-10-05",
+      "revisionDescription": "Major update - Added CloudHSM integration and enhanced security protocols",
+      "responsibleName": "Carlos Martinez"
+    },
+    {
+      "version": "v1.0.0",
+      "date": "2024-12-15",
+      "revisionDescription": "Initial release",
+      "responsibleName": "Carlos Martinez"
+    }
+  ]
 }
