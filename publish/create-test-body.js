@@ -4,6 +4,9 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import fontkit from '@pdf-lib/fontkit';
+import { loadRegularFont } from './src/services/templateService.js';
+import { calculateTextHeight, getTextContent } from './src/utils/pdfUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,38 +16,103 @@ async function createLongBodyPDF() {
   const headerFooterPath = join(__dirname, '..', 'template', 'HeaderFooter.json');
   const headerFooter = JSON.parse(readFileSync(headerFooterPath, 'utf8'));
 
+  // Load DTO data for accurate header height calculation
+  const dtoPath = join(__dirname, 'Pack', 'examples', 'dto-s3.json');
+  const dto = JSON.parse(readFileSync(dtoPath, 'utf8'));
+
   const { width: pageWidth, height: pageHeight } = headerFooter.page;
   const { top, bottom, left, right } = headerFooter.page.margins;
   const headerYPosition = headerFooter.header.y_position;
   const footerSeparatorY = headerFooter.footer.separator_line.y_position;
 
-  // Calculate dynamic header height based on header configuration
-  const calculateHeaderHeight = (headerConfig) => {
+  // Load font for dynamic height calculation
+  const tempDoc = await PDFDocument.create();
+  tempDoc.registerFontkit(fontkit);
+  const fontBytes = loadRegularFont();
+  const font = await tempDoc.embedFont(fontBytes);
+
+  // Calculate dynamic header height based on actual content rendering
+  // This matches the EXACT logic from renderCoverHeader() in coverGenerator.js
+  const calculateDynamicHeaderHeight = (headerConfig, font, payload) => {
     let totalHeight = 0;
+
     for (const row of headerConfig.rows) {
       let rowHeight = row.height;
+
+      // Handle 'auto' height
       if (rowHeight === 'auto') {
         const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
         if (containerCol) {
           rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
         }
       }
-      totalHeight += rowHeight;
+
+      // Calculate dynamic height (exact renderCoverHeader logic)
+      let calculatedHeight = rowHeight;
+
+      for (const col of row.columns) {
+        if (col.type === 'container' && col.rows) {
+          let containerTotalHeight = 0;
+          for (const subRow of col.rows) {
+            let subRowHeight = subRow.height;
+
+            if (subRow.type === 'columns' && subRow.columns) {
+              for (const subCol of subRow.columns) {
+                const textContent = getTextContent(subCol, payload);
+                if (textContent && subCol.type !== 'image') {
+                  const textSize = subCol.text_size || 9;
+                  const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+                  subRowHeight = Math.max(subRowHeight, cellHeight);
+                }
+              }
+            } else {
+              const textContent = getTextContent(subRow, payload);
+              if (textContent && subRow.type !== 'image') {
+                const textSize = subRow.text_size || 9;
+                const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
+                subRowHeight = Math.max(subRowHeight, cellHeight);
+              }
+            }
+
+            containerTotalHeight += subRowHeight;
+          }
+          calculatedHeight = Math.max(calculatedHeight, containerTotalHeight);
+        } else if (col.type === 'columns' && col.columns) {
+          for (const subCol of col.columns) {
+            const textContent = getTextContent(subCol, payload);
+            if (textContent && subCol.type !== 'image') {
+              const textSize = subCol.text_size || 9;
+              const cellHeight = calculateTextHeight(font, textContent, subCol.width, textSize);
+              calculatedHeight = Math.max(calculatedHeight, cellHeight);
+            }
+          }
+        } else if (col.type !== 'image') {
+          const textContent = getTextContent(col, payload);
+          if (textContent) {
+            const textSize = col.text_size || 9;
+            const cellHeight = calculateTextHeight(font, textContent, col.width, textSize);
+            calculatedHeight = Math.max(calculatedHeight, cellHeight);
+          }
+        }
+      }
+
+      totalHeight += calculatedHeight;
     }
+
     return totalHeight;
   };
 
-  const headerHeight = calculateHeaderHeight(headerFooter.header);
+  const headerHeight = calculateDynamicHeaderHeight(headerFooter.header, font, dto);
 
   // Calculate content area: dynamically based on actual header height
-  const contentStartY = headerYPosition - headerHeight - 10; // Start right after header
+  const contentStartY = headerYPosition - headerHeight + 70; // Start right after header
   const contentEndY = footerSeparatorY + 10;   // End 10pt above footer separator
   const contentHeight = contentStartY - contentEndY;
 
   console.log('Creating long body PDF with template parameters:');
   console.log(`  Page: ${pageWidth} x ${pageHeight} points`);
   console.log(`  Margins: left=${left}, right=${right}, top=${top}, bottom=${bottom}`);
-  console.log(`  Header: position=${headerYPosition}, height=${headerHeight}pt`);
+  console.log(`  Header: position=${headerYPosition}, height=${headerHeight}pt (dynamic)`);
   console.log(`  Content area: y=${contentEndY} to y=${contentStartY} (height: ${contentHeight}pt)`);
 
   const pdfDoc = await PDFDocument.create();
