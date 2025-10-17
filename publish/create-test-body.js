@@ -18,14 +18,33 @@ async function createLongBodyPDF() {
   const headerYPosition = headerFooter.header.y_position;
   const footerSeparatorY = headerFooter.footer.separator_line.y_position;
 
-  // Calculate content area: between header (y=660) and footer separator (y=84)
-  const contentStartY = headerYPosition - 50; // Start 50pt below header
+  // Calculate dynamic header height based on header configuration
+  const calculateHeaderHeight = (headerConfig) => {
+    let totalHeight = 0;
+    for (const row of headerConfig.rows) {
+      let rowHeight = row.height;
+      if (rowHeight === 'auto') {
+        const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
+        if (containerCol) {
+          rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
+        }
+      }
+      totalHeight += rowHeight;
+    }
+    return totalHeight;
+  };
+
+  const headerHeight = calculateHeaderHeight(headerFooter.header);
+
+  // Calculate content area: dynamically based on actual header height
+  const contentStartY = headerYPosition - headerHeight - 10; // Start right after header
   const contentEndY = footerSeparatorY + 10;   // End 10pt above footer separator
   const contentHeight = contentStartY - contentEndY;
 
   console.log('Creating long body PDF with template parameters:');
   console.log(`  Page: ${pageWidth} x ${pageHeight} points`);
   console.log(`  Margins: left=${left}, right=${right}, top=${top}, bottom=${bottom}`);
+  console.log(`  Header: position=${headerYPosition}, height=${headerHeight}pt`);
   console.log(`  Content area: y=${contentEndY} to y=${contentStartY} (height: ${contentHeight}pt)`);
 
   const pdfDoc = await PDFDocument.create();
