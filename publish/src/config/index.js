@@ -12,6 +12,27 @@ import { dirname, join } from 'path';
 // Load environment variables
 dotenv.config();
 
+// Get the directory where the application is running from (publish folder)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const appRoot = join(__dirname, '..', '..'); // Go up to publish folder
+
+/**
+ * Resolve template path to absolute path
+ * Supports both relative and absolute paths
+ */
+function resolveTemplatePath() {
+  const templatePath = process.env.TEMPLATE_PATH || '../template';
+
+  // If already absolute, return as-is
+  if (templatePath.match(/^[a-zA-Z]:\\/) || templatePath.startsWith('/')) {
+    return templatePath;
+  }
+
+  // Resolve relative path from app root (publish folder)
+  return join(appRoot, templatePath);
+}
+
 /**
  * Configuration object
  * All environment variables are loaded and validated here
@@ -44,7 +65,7 @@ const config = {
 
   // Template Pack configuration
   template: {
-    path: process.env.TEMPLATE_PATH || '../template',
+    path: resolveTemplatePath(),
   },
 
   // Authentication configuration
