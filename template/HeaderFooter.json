@@ -105,7 +105,7 @@
             "source": "{{context.areaCode}}",
             "width": 34,
             "text_size": 7,
-            "align": "center",
+            "align": "left",
             "border_left": false,
             "border_right": false
           },

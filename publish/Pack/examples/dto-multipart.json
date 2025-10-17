@@ -1,7 +1,7 @@
 {
   "document": {
-    "code": "PAS-L2-PKI-ESP-003",
     "title": "CloudHSM Implementation Guide",
+    "code": "PAS-L2-PKI-ESP-003",
     "publicationDate": "2025-10-05",
     "semanticVersion": "v2.0.0",
     "brand": { "logoUrl": "https://assets.passfy.io/logo.png" },
