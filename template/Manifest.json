@@ -260,7 +260,7 @@
               {
                 "type": "text",
                 "height": 13,
-                "source": "{{participants.reviewers[0].name}}",
+                "source": "{{participants.reviewers[-1].name}}",
                 "text_size": 9,
                 "align": "right",
                 "border_top": false
@@ -277,7 +277,7 @@
                   },
                   {
                     "width": 88,
-                    "source": "{{checklists.review[0].date}}",
+                    "source": "{{checklists.review[-1].date}}",
                     "text_size": 8,
                     "align": "center"
                   }
@@ -293,7 +293,7 @@
               {
                 "type": "image",
                 "height": 40,
-                "source": "{{participants.reviewers[0].signature}}",
+                "source": "{{participants.reviewers[-1].signature}}",
                 "align": "center"
               }
             ]
@@ -370,7 +370,7 @@
               {
                 "type": "text",
                 "height": 13,
-                "source": "{{participants.approvers[0].name}}",
+                "source": "{{participants.approvers[-1].name}}",
                 "text_size": 9,
                 "align": "right",
                 "border_top": false
@@ -387,7 +387,7 @@
                   },
                   {
                     "width": 88,
-                    "source": "{{checklists.approval[0].date}}",
+                    "source": "{{checklists.approval[-1].date}}",
                     "text_size": 8,
                     "align": "center"
                   }
@@ -403,7 +403,7 @@
               {
                 "type": "image",
                 "height": 40,
-                "source": "{{participants.approvers[0].signature}}",
+                "source": "{{participants.approvers[-1].signature}}",
                 "align": "center"
               }
             ]
