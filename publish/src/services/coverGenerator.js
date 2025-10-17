@@ -393,7 +393,7 @@ function renderLogoPlaceholder(page, font, x, y, width, height) {
 
 /**
  * Build dynamic rows for FIRMAS Y APROBACIONES table
- * Supports multiple reviewers and approvers (max 2 each)
+ * Supports multiple reviewers and approvers (unlimited)
  * Returns array of objects with row data and merge information
  */
 function buildFirmasRows(rowTemplates, payload) {
@@ -404,7 +404,7 @@ function buildFirmasRows(rowTemplates, payload) {
 
     // Handle arrays (reviewers and approvers) - merge Acción cells
     if (action === 'Revisó' && payload.participants?.reviewers) {
-      const reviewers = payload.participants.reviewers.slice(0, 2); // Max 2
+      const reviewers = payload.participants.reviewers; // Support unlimited reviewers
       reviewers.forEach((reviewer, idx) => {
         rows.push({
           data: [
@@ -421,7 +421,7 @@ function buildFirmasRows(rowTemplates, payload) {
         });
       });
     } else if (action === 'Aprobó' && payload.participants?.approvers) {
-      const approvers = payload.participants.approvers.slice(0, 2); // Max 2
+      const approvers = payload.participants.approvers; // Support unlimited approvers
       approvers.forEach((approver, idx) => {
         rows.push({
           data: [
