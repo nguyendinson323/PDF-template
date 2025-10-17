@@ -19,7 +19,7 @@ async function createLongBodyPDF() {
   const footerSeparatorY = headerFooter.footer.separator_line.y_position;
 
   // Calculate content area: between header (y=660) and footer separator (y=84)
-  const contentStartY = headerYPosition - 20; // Start 20pt below header
+  const contentStartY = headerYPosition - 50; // Start 50pt below header
   const contentEndY = footerSeparatorY + 10;   // End 10pt above footer separator
   const contentHeight = contentStartY - contentEndY;
 
