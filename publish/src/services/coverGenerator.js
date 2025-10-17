@@ -394,6 +394,7 @@ function renderLogoPlaceholder(page, font, x, y, width, height) {
 /**
  * Build dynamic rows for FIRMAS Y APROBACIONES table
  * Supports multiple reviewers and approvers (max 2 each)
+ * Returns array of objects with row data and merge information
  */
 function buildFirmasRows(rowTemplates, payload) {
   const rows = [];
@@ -401,30 +402,40 @@ function buildFirmasRows(rowTemplates, payload) {
   for (const rowTemplate of rowTemplates) {
     const action = rowTemplate.cells[0].text;
 
-    // Handle arrays (reviewers and approvers)
+    // Handle arrays (reviewers and approvers) - merge Acción cells
     if (action === 'Revisó' && payload.participants?.reviewers) {
       const reviewers = payload.participants.reviewers.slice(0, 2); // Max 2
       reviewers.forEach((reviewer, idx) => {
-        rows.push([
-          action,
-          reviewer.name || '',
-          reviewer.jobTitle || '',
-          payload.checklists?.review?.[idx]?.id || '',
-          payload.checklists?.review?.[idx]?.date || '',
-          payload.checklists?.review?.[idx]?.status || ''
-        ]);
+        rows.push({
+          data: [
+            action,
+            reviewer.name || '',
+            reviewer.jobTitle || '',
+            payload.checklists?.review?.[idx]?.id || '',
+            payload.checklists?.review?.[idx]?.date || '',
+            payload.checklists?.review?.[idx]?.status || ''
+          ],
+          mergeFirstCell: idx > 0, // Merge Acción cell for rows after the first
+          mergeGroup: 'Revisó',
+          mergeRowCount: reviewers.length
+        });
       });
     } else if (action === 'Aprobó' && payload.participants?.approvers) {
       const approvers = payload.participants.approvers.slice(0, 2); // Max 2
       approvers.forEach((approver, idx) => {
-        rows.push([
-          action,
-          approver.name || '',
-          approver.jobTitle || '',
-          payload.checklists?.approval?.[idx]?.id || '',
-          payload.checklists?.approval?.[idx]?.date || '',
-          payload.checklists?.approval?.[idx]?.status || ''
-        ]);
+        rows.push({
+          data: [
+            action,
+            approver.name || '',
+            approver.jobTitle || '',
+            payload.checklists?.approval?.[idx]?.id || '',
+            payload.checklists?.approval?.[idx]?.date || '',
+            payload.checklists?.approval?.[idx]?.status || ''
+          ],
+          mergeFirstCell: idx > 0, // Merge Acción cell for rows after the first
+          mergeGroup: 'Aprobó',
+          mergeRowCount: approvers.length
+        });
       });
     } else {
       // Handle single entries (Elaboró, QAC, Publicó)
@@ -436,7 +447,12 @@ function buildFirmasRows(rowTemplates, payload) {
         }
         return '';
       });
-      rows.push(rowData);
+      rows.push({
+        data: rowData,
+        mergeFirstCell: false,
+        mergeGroup: null,
+        mergeRowCount: 1
+      });
     }
   }
 
@@ -480,15 +496,15 @@ async function renderApprovalTable(context) {
   // Build dynamic rows based on data
   const dynamicRows = buildFirmasRows(firmas.rows, payload);
 
-  // Render rows with overflow detection
+  // Precalculate row heights
+  const rowHeights = [];
   for (let i = 0; i < dynamicRows.length; i++) {
-    const rowData = dynamicRows[i];
+    const row = dynamicRows[i];
     let maxHeight = minRowH;
 
-    // Calculate this row's height
-    for (let j = 0; j < rowData.length; j++) {
+    for (let j = 0; j < row.data.length; j++) {
       const colWidth = firmas.header.columns[j].width;
-      const textContent = rowData[j];
+      const textContent = row.data[j];
 
       if (textContent) {
         const cellHeight = calculateTextHeight(font, textContent, colWidth, firmas.rows_config.text_size);
@@ -496,49 +512,121 @@ async function renderApprovalTable(context) {
       }
     }
 
-    // Check if row fits on current page
-    if (currentY - maxHeight < minY) {
-      // Row doesn't fit - create new page
+    rowHeights.push(maxHeight);
+  }
+
+  // Render rows with merged cell support
+  let i = 0;
+  while (i < dynamicRows.length) {
+    const row = dynamicRows[i];
+    const rowHeight = rowHeights[i];
+
+    // Calculate merge group total height if this is the start of a merge
+    let mergeGroupHeight = rowHeight;
+    let mergeGroupRowCount = 1;
+
+    if (row.mergeGroup && !row.mergeFirstCell) {
+      // This is the first row in a merge group
+      mergeGroupRowCount = row.mergeRowCount;
+      mergeGroupHeight = 0;
+      for (let k = 0; k < mergeGroupRowCount && (i + k) < dynamicRows.length; k++) {
+        mergeGroupHeight += rowHeights[i + k];
+      }
+    }
+
+    // Check if row (or merge group) fits on current page
+    if (currentY - mergeGroupHeight < minY) {
+      // Doesn't fit - create new page
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       stroke = makeStroker(page, BORDER_CONFIG.color, BORDER_CONFIG.thickness);
 
-      // Render document header on new page
       currentY = headerFooter.header.y_position + headerFooter.header.height;
       currentY = await renderCoverHeader({ ...context, page, stroke, currentY });
-
-      // Apply table margin_top on new page
       currentY -= (firmas.margin_top || 0);
-
-      // Re-render table title and header on new page
       currentY = await renderTableHeaderOnNewPage(page, font, stroke, firmas, tableX, usableWidth, currentY);
     }
 
-    // Draw row border
-    strokeRect(stroke, tableX, currentY - maxHeight, usableWidth, maxHeight);
+    // Render merge group or single row
+    if (row.mergeGroup && !row.mergeFirstCell) {
+      // Render merged cell group
+      const mergeTopY = currentY;
+      const mergeBottomY = currentY - mergeGroupHeight;
+      const firstColWidth = firmas.header.columns[0].width;
 
-    // Draw horizontal separator (except first row)
-    if (i > 0) {
-      stroke(tableX, currentY, tableX + usableWidth, currentY);
-    }
+      // Draw outer border for entire merge group
+      strokeRect(stroke, tableX, mergeBottomY, usableWidth, mergeGroupHeight);
 
-    // Draw cells
-    let cellX = tableX;
-    for (let j = 0; j < rowData.length; j++) {
-      const textContent = rowData[j];
-      const colWidth = firmas.header.columns[j].width;
-      if (textContent) {
-        drawMultilineText(page, font, textContent, cellX, currentY - maxHeight, colWidth, maxHeight, firmas.rows_config.text_size, firmas.rows_config.align);
+      // Draw merged "Acción" cell (first column spanning multiple rows)
+      const actionText = row.data[0];
+      if (actionText) {
+        drawMultilineText(page, font, actionText, tableX, mergeBottomY, firstColWidth, mergeGroupHeight, firmas.rows_config.text_size, firmas.rows_config.align);
       }
 
-      // Draw vertical separator
-      if (j < rowData.length - 1) {
-        stroke(cellX + colWidth, currentY, cellX + colWidth, currentY - maxHeight);
+      // Draw vertical separator after "Acción" column
+      stroke(tableX + firstColWidth, mergeTopY, tableX + firstColWidth, mergeBottomY);
+
+      // Render each row in the merge group (excluding first column)
+      let groupY = mergeTopY;
+      for (let k = 0; k < mergeGroupRowCount && (i + k) < dynamicRows.length; k++) {
+        const groupRow = dynamicRows[i + k];
+        const groupRowHeight = rowHeights[i + k];
+
+        // Draw horizontal separator (except for first row in group)
+        // Start from after the merged "Acción" column to avoid overlapping
+        if (k > 0) {
+          stroke(tableX + firstColWidth, groupY, tableX + usableWidth, groupY);
+        }
+
+        // Draw cells (starting from column 1, skipping merged "Acción" column)
+        let cellX = tableX + firstColWidth;
+        for (let j = 1; j < groupRow.data.length; j++) {
+          const textContent = groupRow.data[j];
+          const colWidth = firmas.header.columns[j].width;
+
+          if (textContent) {
+            drawMultilineText(page, font, textContent, cellX, groupY - groupRowHeight, colWidth, groupRowHeight, firmas.rows_config.text_size, firmas.rows_config.align);
+          }
+
+          // Draw vertical separator
+          if (j < groupRow.data.length - 1) {
+            stroke(cellX + colWidth, groupY, cellX + colWidth, groupY - groupRowHeight);
+          }
+
+          cellX += colWidth;
+        }
+
+        groupY -= groupRowHeight;
       }
 
-      cellX += colWidth;
-    }
+      currentY -= mergeGroupHeight;
+      i += mergeGroupRowCount;
+    } else {
+      // Render single row (no merging)
+      strokeRect(stroke, tableX, currentY - rowHeight, usableWidth, rowHeight);
 
-    currentY -= maxHeight;
+      if (i > 0) {
+        stroke(tableX, currentY, tableX + usableWidth, currentY);
+      }
+
+      let cellX = tableX;
+      for (let j = 0; j < row.data.length; j++) {
+        const textContent = row.data[j];
+        const colWidth = firmas.header.columns[j].width;
+
+        if (textContent) {
+          drawMultilineText(page, font, textContent, cellX, currentY - rowHeight, colWidth, rowHeight, firmas.rows_config.text_size, firmas.rows_config.align);
+        }
+
+        if (j < row.data.length - 1) {
+          stroke(cellX + colWidth, currentY, cellX + colWidth, currentY - rowHeight);
+        }
+
+        cellX += colWidth;
+      }
+
+      currentY -= rowHeight;
+      i++;
+    }
   }
 
   return { currentY, page, stroke };
