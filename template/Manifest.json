@@ -77,19 +77,19 @@
                 "text": "Elaboró"
               },
               {
-                "source": "{{participants.creator.name}}"
+                "source": "{{participants.creator[-1].name}}"
               },
               {
-                "source": "{{participants.creator.jobTitle}}"
+                "source": "{{participants.creator[-1].jobTitle}}"
               },
               {
-                "source": "{{checklists.creator.id}}"
+                "source": "{{checklists.creator[-1].id}}"
               },
               {
-                "source": "{{checklists.creator.date}}"
+                "source": "{{checklists.creator[-1].date}}"
               },
               {
-                "source": "{{checklists.creator.status}}"
+                "source": "{{checklists.creator[-1].status}}"
               }
             ]
           },
@@ -121,19 +121,19 @@
                 "text": "QAC"
               },
               {
-                "source": "{{participants.qac.name}}"
+                "source": "{{participants.qac[-1].name}}"
               },
               {
-                "source": "{{participants.qac.jobTitle}}"
+                "source": "{{participants.qac[-1].jobTitle}}"
               },
               {
-                "source": "{{checklists.qac.id}}"
+                "source": "{{checklists.qac[-1].id}}"
               },
               {
-                "source": "{{checklists.qac.date}}"
+                "source": "{{checklists.qac[-1].date}}"
               },
               {
-                "source": "{{checklists.qac.status}}"
+                "source": "{{checklists.qac[-1].status}}"
               }
             ]
           },
@@ -165,19 +165,19 @@
                 "text": "Publicó"
               },
               {
-                "source": "{{participants.dcontrol.name}}"
+                "source": "{{participants.dcontrol[-1].name}}"
               },
               {
-                "source": "{{participants.dcontrol.jobTitle}}"
+                "source": "{{participants.dcontrol[-1].jobTitle}}"
               },
               {
-                "source": "{{checklists.publish.id}}"
+                "source": "{{checklists.publish[-1].id}}"
               },
               {
-                "source": "{{checklists.publish.date}}"
+                "source": "{{checklists.publish[-1].date}}"
               },
               {
-                "source": "{{checklists.publish.status}}"
+                "source": "{{checklists.publish[-1].status}}"
               }
             ]
           }
@@ -205,7 +205,7 @@
               {
                 "type": "text",
                 "height": 13,
-                "source": "{{participants.creator.name}}",
+                "source": "{{participants.creator[-1].name}}",
                 "text_size": 9,
                 "align": "right",
                 "border_top": false
@@ -222,7 +222,7 @@
                   },
                   {
                     "width": 88,
-                    "source": "{{checklists.creator.date}}",
+                    "source": "{{checklists.creator[-1].date}}",
                     "text_size": 8,
                     "align": "center"
                   }
@@ -238,7 +238,7 @@
               {
                 "type": "image",
                 "height": 40,
-                "source": "{{participants.creator.signature}}",
+                "source": "{{participants.creator[-1].signature}}",
                 "align": "center"
               }
             ]
@@ -315,7 +315,7 @@
               {
                 "type": "text",
                 "height": 13,
-                "source": "{{participants.qac.name}}",
+                "source": "{{participants.qac[-1].name}}",
                 "text_size": 9,
                 "align": "right",
                 "border_top": false
@@ -332,7 +332,7 @@
                   },
                   {
                     "width": 88,
-                    "source": "{{checklists.qac.date}}",
+                    "source": "{{checklists.qac[-1].date}}",
                     "text_size": 8,
                     "align": "center"
                   }
@@ -348,7 +348,7 @@
               {
                 "type": "image",
                 "height": 40,
-                "source": "{{participants.qac.signature}}",
+                "source": "{{participants.qac[-1].signature}}",
                 "align": "center"
               }
             ]
@@ -425,7 +425,7 @@
               {
                 "type": "text",
                 "height": 13,
-                "source": "{{participants.dcontrol.name}}",
+                "source": "{{participants.dcontrol[-1].name}}",
                 "text_size": 9,
                 "align": "right",
                 "border_top": false
@@ -442,7 +442,7 @@
                   },
                   {
                     "width": 88,
-                    "source": "{{checklists.publish.date}}",
+                    "source": "{{checklists.publish[-1].date}}",
                     "text_size": 8,
                     "align": "center"
                   }
@@ -458,7 +458,7 @@
               {
                 "type": "image",
                 "height": 40,
-                "source": "{{participants.dcontrol.signature}}",
+                "source": "{{participants.dcontrol[-1].signature}}",
                 "align": "center"
               }
             ]
