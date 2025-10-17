@@ -8,7 +8,7 @@
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { loadHeaderFooter, loadRegularFont } from './templateService.js';
-import { resolveTemplate, wrapText } from '../utils/pdfUtils.js';
+import { resolveTemplate, wrapText, getTextContent, drawMultilineText } from '../utils/pdfUtils.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -67,37 +67,109 @@ export async function applyHeaderFooter(bodyPdfBytes, dto, coverPageCount = 0, t
 
 /**
  * Apply header overlay to a single page
- * Uses design values from HeaderFooter.json
+ * Uses full header structure from HeaderFooter.json (same as cover)
  */
 function applyHeader(page, font, dto, headerFooter) {
-  const { width: pageWidth } = page.getSize();
-  const { left: leftMargin, right: rightMargin } = headerFooter.page.margins;
+  const { left: leftMargin } = headerFooter.page.margins;
 
-  // Header text positioned using template values
-  const headerY = headerFooter.header.y_position + headerFooter.header.height - 30;
-  const headerText = `${dto.document.code} - ${dto.document.title}`;
-  const headerSize = 9;
+  let currentY = headerFooter.header.y_position + headerFooter.header.height;
 
-  const maxWidth = pageWidth - leftMargin - rightMargin;
-  const textWidth = font.widthOfTextAtSize(headerText, headerSize);
+  // Render each row from the header configuration
+  for (const row of headerFooter.header.rows) {
+    let rowHeight = row.height;
+    if (rowHeight === 'auto') {
+      const containerCol = row.columns.find(col => col.type === 'container' && col.rows);
+      if (containerCol) {
+        rowHeight = containerCol.rows.reduce((sum, subRow) => sum + subRow.height, 0);
+      }
+    }
 
-  let displayText = headerText;
-  if (textWidth > maxWidth) {
-    // Truncate text to fit within margins
-    const charsPerPoint = headerText.length / textWidth;
-    const maxChars = Math.floor(maxWidth / (headerSize * 0.6)); // Approximate
-    displayText = headerText.substring(0, maxChars - 3) + '...';
+    let currentX = leftMargin;
+
+    // Render columns
+    for (const col of row.columns) {
+      const colWidth = col.width;
+
+      if (col.type === 'container' && col.rows) {
+        let containerY = currentY;
+        for (const subRow of col.rows) {
+          const subHeight = subRow.height;
+
+          // Draw borders
+          drawCellBordersSimple(page, subRow, currentX, containerY, colWidth, subHeight);
+
+          // Draw text
+          const textContent = getTextContent(subRow, dto);
+          if (textContent && subRow.type !== 'image') {
+            const textSize = subRow.text_size || 9;
+            drawMultilineText(page, font, textContent, currentX, containerY - subHeight, colWidth, subHeight, textSize, subRow.align);
+          }
+
+          containerY -= subHeight;
+        }
+      } else {
+        // Draw borders
+        drawCellBordersSimple(page, col, currentX, currentY, colWidth, rowHeight);
+
+        // Draw text (skip images for simplicity in header overlay)
+        const textContent = getTextContent(col, dto);
+        if (textContent && col.type !== 'image') {
+          const textSize = col.text_size || 9;
+          drawMultilineText(page, font, textContent, currentX, currentY - rowHeight, colWidth, rowHeight, textSize, col.align);
+        }
+      }
+
+      currentX += colWidth;
+    }
+
+    currentY -= rowHeight;
   }
+}
 
-  const textX = (pageWidth - font.widthOfTextAtSize(displayText, headerSize)) / 2;
+/**
+ * Draw cell borders (simplified version for overlays)
+ */
+function drawCellBordersSimple(page, cellConfig, x, y, width, height) {
+  const borderTop = cellConfig.border_top !== false;
+  const borderBottom = cellConfig.border_bottom !== false;
+  const borderLeft = cellConfig.border_left !== false;
+  const borderRight = cellConfig.border_right !== false;
 
-  page.drawText(displayText, {
-    x: textX,
-    y: headerY,
-    size: headerSize,
-    font,
-    color: rgb(0.3, 0.3, 0.3),
-  });
+  const lineColor = rgb(0, 0, 0);
+  const lineThickness = 0.5;
+
+  if (borderTop) {
+    page.drawLine({
+      start: { x, y },
+      end: { x: x + width, y },
+      color: lineColor,
+      thickness: lineThickness,
+    });
+  }
+  if (borderBottom) {
+    page.drawLine({
+      start: { x, y: y - height },
+      end: { x: x + width, y: y - height },
+      color: lineColor,
+      thickness: lineThickness,
+    });
+  }
+  if (borderLeft) {
+    page.drawLine({
+      start: { x, y: y - height },
+      end: { x, y },
+      color: lineColor,
+      thickness: lineThickness,
+    });
+  }
+  if (borderRight) {
+    page.drawLine({
+      start: { x: x + width, y: y - height },
+      end: { x: x + width, y },
+      color: lineColor,
+      thickness: lineThickness,
+    });
+  }
 }
 
 /**
@@ -139,7 +211,13 @@ function applyFooter(page, font, dto, headerFooter, pageNumber, totalPages) {
         // Truncate hash to last 8 characters for display
         if (elem.source.includes('hashSha256') && resolved.length > 8) {
           footerText += resolved.substring(resolved.length - 8);
-        } else {
+        }
+        // Extract only the correlative number (e.g., "R-Final-001" -> "001")
+        else if (elem.source.includes('correlativocurrentPhase')) {
+          const parts = resolved.split('-');
+          footerText += parts[parts.length - 1];
+        }
+        else {
           footerText += resolved;
         }
       }

@@ -162,7 +162,13 @@ function renderFooter(page, font, payload, headerFooter, pageWidth, leftMargin, 
         // Truncate hash to last 8 characters for display
         if (elem.source.includes('hashSha256') && resolved.length > 8) {
           footerText += resolved.substring(resolved.length - 8);
-        } else {
+        }
+        // Extract only the correlative number (e.g., "R-Final-001" -> "001")
+        else if (elem.source.includes('correlativocurrentPhase')) {
+          const parts = resolved.split('-');
+          footerText += parts[parts.length - 1];
+        }
+        else {
           footerText += resolved;
         }
       }
@@ -371,6 +377,58 @@ function renderLogoPlaceholder(page, font, x, y, width, height) {
 }
 
 /**
+ * Build dynamic rows for FIRMAS Y APROBACIONES table
+ * Supports multiple reviewers and approvers (max 2 each)
+ */
+function buildFirmasRows(rowTemplates, payload) {
+  const rows = [];
+
+  for (const rowTemplate of rowTemplates) {
+    const action = rowTemplate.cells[0].text;
+
+    // Handle arrays (reviewers and approvers)
+    if (action === 'Revisó' && payload.participants?.reviewers) {
+      const reviewers = payload.participants.reviewers.slice(0, 2); // Max 2
+      reviewers.forEach((reviewer, idx) => {
+        rows.push([
+          action,
+          reviewer.name || '',
+          reviewer.jobTitle || '',
+          payload.checklists?.review?.[idx]?.id || '',
+          payload.checklists?.review?.[idx]?.date || '',
+          payload.checklists?.review?.[idx]?.status || ''
+        ]);
+      });
+    } else if (action === 'Aprobó' && payload.participants?.approvers) {
+      const approvers = payload.participants.approvers.slice(0, 2); // Max 2
+      approvers.forEach((approver, idx) => {
+        rows.push([
+          action,
+          approver.name || '',
+          approver.jobTitle || '',
+          payload.checklists?.approval?.[idx]?.id || '',
+          payload.checklists?.approval?.[idx]?.date || '',
+          payload.checklists?.approval?.[idx]?.status || ''
+        ]);
+      });
+    } else {
+      // Handle single entries (Elaboró, QAC, Publicó)
+      const rowData = rowTemplate.cells.map(cell => {
+        if (cell.text) {
+          return cell.text;
+        } else if (cell.source) {
+          return resolveTemplate(cell.source, payload) || '';
+        }
+        return '';
+      });
+      rows.push(rowData);
+    }
+  }
+
+  return rows;
+}
+
+/**
  * Render approval table (FIRMAS Y APROBACIONES) with page overflow handling
  */
 async function renderApprovalTable(context) {
@@ -404,15 +462,18 @@ async function renderApprovalTable(context) {
   }
   currentY -= headerH;
 
+  // Build dynamic rows based on data
+  const dynamicRows = buildFirmasRows(firmas.rows, payload);
+
   // Render rows with overflow detection
-  for (let i = 0; i < firmas.rows.length; i++) {
+  for (let i = 0; i < dynamicRows.length; i++) {
+    const rowData = dynamicRows[i];
     let maxHeight = minRowH;
 
     // Calculate this row's height
-    for (let j = 0; j < firmas.rows[i].cells.length; j++) {
-      const cell = firmas.rows[i].cells[j];
+    for (let j = 0; j < rowData.length; j++) {
       const colWidth = firmas.header.columns[j].width;
-      const textContent = getTextContent(cell, payload);
+      const textContent = rowData[j];
 
       if (textContent) {
         const cellHeight = calculateTextHeight(font, textContent, colWidth, firmas.rows_config.text_size);
@@ -447,16 +508,15 @@ async function renderApprovalTable(context) {
 
     // Draw cells
     let cellX = tableX;
-    for (let j = 0; j < firmas.rows[i].cells.length; j++) {
-      const cell = firmas.rows[i].cells[j];
+    for (let j = 0; j < rowData.length; j++) {
+      const textContent = rowData[j];
       const colWidth = firmas.header.columns[j].width;
-      const textContent = getTextContent(cell, payload);
       if (textContent) {
         drawMultilineText(page, font, textContent, cellX, currentY - maxHeight, colWidth, maxHeight, firmas.rows_config.text_size, firmas.rows_config.align);
       }
 
       // Draw vertical separator
-      if (j < firmas.rows[i].cells.length - 1) {
+      if (j < rowData.length - 1) {
         stroke(cellX + colWidth, currentY, cellX + colWidth, currentY - maxHeight);
       }
 
