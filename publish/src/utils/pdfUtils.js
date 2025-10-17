@@ -27,8 +27,18 @@ export function resolveTemplate(template, data) {
         if (key.includes('[')) {
           const [arrayKey, indexStr] = key.split(/[\[\]]/);
           const index = parseInt(indexStr);
-          if (value[arrayKey] && Array.isArray(value[arrayKey]) && value[arrayKey][index]) {
-            value = value[arrayKey][index];
+
+          if (value[arrayKey] && Array.isArray(value[arrayKey])) {
+            // Support negative indices (e.g., [-1] for last element)
+            const actualIndex = index < 0
+              ? value[arrayKey].length + index
+              : index;
+
+            if (value[arrayKey][actualIndex]) {
+              value = value[arrayKey][actualIndex];
+            } else {
+              return '';
+            }
           } else {
             return '';
           }

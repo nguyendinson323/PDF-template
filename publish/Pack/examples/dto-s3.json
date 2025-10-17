@@ -4,14 +4,20 @@
     "code": "PAS-L1-GOV-PRC-001",
     "publicationDate": "2025-03-12",
     "semanticVersion": "v2.0.0",
-    "brand": { "logoUrl": "https://assets.passfy.io/logo.png" },
-    "qr": { "baseUrl": "https://verify.passfy.io/doc/" },
+    "brand": {
+      "logoUrl": "https://assets.passfy.io/logo.png"
+    },
+    "qr": {
+      "baseUrl": "https://verify.passfy.io/doc/"
+    },
     "security": {
       "hashSha256": "b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3",
       "tsaTime": "2025-03-13T09:15:00Z",
       "tsaSerial": "TSA-2025-001"
     },
-    "storage": { "s3Key": "" },
+    "storage": {
+      "s3Key": ""
+    },
     "folderPath": "/GOV/PRC/PAS-L1-GOV-PRC-001",
     "s3Refs": {
       "body": "Desarrollo/bodies/PAS-L1-GOV-PRC-001-v2.0.0-R-Final-001.pdf",
@@ -40,20 +46,86 @@
     "s3Key": "Desarrollo/bodies/PAS-L1-GOV-PRC-001-v2.0.0-R-Final-001.pdf"
   },
   "participants": {
-    "creator":   { "name": "Autor", "jobTitle": "Document Owner" },
-    "reviewers": [{ "name": "Revisor 1", "jobTitle": "PKI Engineer" }],
-    "qac":       { "name": "QAC", "jobTitle": "Quality Controller" },
-    "approvers": [{ "name": "CTO", "jobTitle": "CTO" }],
-    "dcontrol":  { "name": "DC", "jobTitle": "Document Controller" }
+    "creator": {
+      "name": "María González",
+      "jobTitle": "Document Owner"
+    },
+    "reviewers": [
+      {
+        "name": "Carlos Ibáñez",
+        "jobTitle": "PKI Engineer"
+      },
+      {
+        "name": "Laura Fernández",
+        "jobTitle": "Compliance Analyst"
+      }
+    ],
+    "qac": {
+      "name": "Andrea Molina",
+      "jobTitle": "Quality Assurance Controller"
+    },
+    "approvers": [
+      {
+        "name": "Dr. Tomás Herrera",
+        "jobTitle": "Chief Technology Officer"
+      },
+      {
+        "name": "Ana Ruiz",
+        "jobTitle": "Chief Information Security Officer"
+      }
+    ],
+    "dcontrol": {
+      "name": "Felipe Navarro",
+      "jobTitle": "Document Controller"
+    }
   },
   "checklists": {
-    "creator":  { "id": "chk_cr_01", "date": "2025-03-10", "status": "Aprobada" },
-    "review":   [{ "id": "chk_rv_02", "date": "2025-03-11", "status": "Aprobada" }],
-    "qac":      { "id": "chk_qc_03", "date": "2025-03-12", "status": "Aprobada" },
-    "approval": [{ "id": "chk_ap_04", "date": "2025-03-12", "status": "Aprobada" }],
-    "publish":  { "id": "chk_dc_05", "date": "2025-03-13", "status": "Aprobada" }
+    "creator": {
+      "id": "CHK-CR-2025-001",
+      "date": "2025-03-10",
+      "status": "Aprobada"
+    },
+    "review": [
+      {
+        "id": "CHK-RV-2025-002",
+        "date": "2025-03-11",
+        "status": "Aprobada"
+      },
+      {
+        "id": "CHK-RV-2025-003",
+        "date": "2025-03-11",
+        "status": "Aprobada"
+      }
+    ],
+    "qac": {
+      "id": "CHK-QA-2025-004",
+      "date": "2025-03-12",
+      "status": "Aprobada"
+    },
+    "approval": [
+      {
+        "id": "CHK-AP-2025-005",
+        "date": "2025-03-12",
+        "status": "Aprobada"
+      },
+      {
+        "id": "CHK-AP-2025-006",
+        "date": "2025-03-12",
+        "status": "Aprobada"
+      }
+    ],
+    "publish": {
+      "id": "CHK-DC-2025-007",
+      "date": "2025-03-13",
+      "status": "Aprobada"
+    }
   },
   "revision_history": [
-    { "version": "v2.0.0", "date": "2025-03-12", "revisionDescription": "ISO/IEC 27001:2022 alignment", "responsibleName": "DC" }
+    {
+      "version": "v2.0.0",
+      "date": "2025-03-12",
+      "revisionDescription": "ISO/IEC 27001:2022 alignment",
+      "responsibleName": "DC"
+    }
   ]
 }
