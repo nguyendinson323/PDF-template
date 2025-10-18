@@ -107,6 +107,49 @@ function validateContext(context) {
 }
 
 /**
+ * Validate a single participant entry (name and jobTitle)
+ */
+function validateParticipantEntry(participant, path) {
+  const errors = [];
+  if (!participant.name) errors.push(`${path}.name is required`);
+  if (!participant.jobTitle) errors.push(`${path}.jobTitle is required`);
+  return errors;
+}
+
+/**
+ * Validate participant field - handles both array and object types
+ */
+function validateParticipantField(field, fieldName) {
+  const errors = [];
+
+  if (!field) {
+    errors.push(`participants.${fieldName} is required`);
+    return errors;
+  }
+
+  // Handle array type
+  if (Array.isArray(field)) {
+    if (field.length === 0) {
+      errors.push(`participants.${fieldName} must be a non-empty array`);
+    } else {
+      field.forEach((entry, index) => {
+        errors.push(...validateParticipantEntry(entry, `participants.${fieldName}[${index}]`));
+      });
+    }
+  }
+  // Handle object type
+  else if (typeof field === 'object') {
+    errors.push(...validateParticipantEntry(field, `participants.${fieldName}`));
+  }
+  // Invalid type
+  else {
+    errors.push(`participants.${fieldName} must be an object or array`);
+  }
+
+  return errors;
+}
+
+/**
  * Validate participants object
  */
 function validateParticipants(participants) {
@@ -117,33 +160,12 @@ function validateParticipants(participants) {
     return errors;
   }
 
-  // Creator
-  if (!participants.creator) {
-    errors.push('participants.creator is required');
-  } else {
-    if (!participants.creator.name) errors.push('participants.creator.name is required');
-    if (!participants.creator.jobTitle) errors.push('participants.creator.jobTitle is required');
-  }
-
-  // Reviewers
-  if (!Array.isArray(participants.reviewers) || participants.reviewers.length === 0) {
-    errors.push('participants.reviewers must be a non-empty array');
-  }
-
-  // QAC
-  if (!participants.qac) {
-    errors.push('participants.qac is required');
-  }
-
-  // Approvers
-  if (!Array.isArray(participants.approvers) || participants.approvers.length === 0) {
-    errors.push('participants.approvers must be a non-empty array');
-  }
-
-  // Document control
-  if (!participants.dcontrol) {
-    errors.push('participants.dcontrol is required');
-  }
+  // Validate each participant field (supports both array and object)
+  errors.push(...validateParticipantField(participants.creator, 'creator', participants));
+  errors.push(...validateParticipantField(participants.reviewers, 'reviewers', participants));
+  errors.push(...validateParticipantField(participants.qac, 'qac', participants));
+  errors.push(...validateParticipantField(participants.approvers, 'approvers', participants));
+  errors.push(...validateParticipantField(participants.dcontrol, 'dcontrol', participants));
 
   return errors;
 }

@@ -46,10 +46,12 @@
     "s3Key": "Desarrollo/bodies/PAS-L1-GOV-PRC-001-v2.0.0-R-Final-001.pdf"
   },
   "participants": {
-    "creator": {
-      "name": "María González",
-      "jobTitle": "Document Owner"
-    },
+    "creator": [
+      {
+        "name": "María González",
+        "jobTitle": "Document Owner"
+      }
+    ],
     "reviewers": [
       {
         "name": "Carlos Ibáñez",
@@ -60,10 +62,12 @@
         "jobTitle": "Compliance Analyst"
       }
     ],
-    "qac": {
-      "name": "Andrea Molina",
-      "jobTitle": "Quality Assurance Controller"
-    },
+    "qac": [
+      {
+        "name": "Andrea Molina",
+        "jobTitle": "Quality Assurance Controller"
+      }
+    ],
     "approvers": [
       {
         "name": "Dr. Tomás Herrera",
@@ -74,10 +78,12 @@
         "jobTitle": "Chief Information Security Officer"
       }
     ],
-    "dcontrol": {
-      "name": "Felipe Navarro",
-      "jobTitle": "Document Controller"
-    }
+    "dcontrol": [
+      {
+        "name": "Felipe Navarro",
+        "jobTitle": "Document Controller"
+      }
+    ]
   },
   "checklists": {
     "creator": {
