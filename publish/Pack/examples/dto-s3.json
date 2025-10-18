@@ -86,11 +86,13 @@
     ]
   },
   "checklists": {
-    "creator": {
-      "id": "CHK-CR-2025-001",
-      "date": "2025-03-10",
-      "status": "Aprobada"
-    },
+    "creator": [
+      {
+        "id": "CHK-CR-2025-001",
+        "date": "2025-03-10",
+        "status": "Aprobada"
+      }
+    ],
     "review": [
       {
         "id": "CHK-RV-2025-002",
@@ -103,11 +105,13 @@
         "status": "Aprobada"
       }
     ],
-    "qac": {
-      "id": "CHK-QA-2025-004",
-      "date": "2025-03-12",
-      "status": "Aprobada"
-    },
+    "qac": [
+      {
+        "id": "CHK-QA-2025-004",
+        "date": "2025-03-12",
+        "status": "Aprobada"
+      }
+    ],
     "approval": [
       {
         "id": "CHK-AP-2025-005",
@@ -120,11 +124,13 @@
         "status": "Aprobada"
       }
     ],
-    "publish": {
-      "id": "CHK-DC-2025-007",
-      "date": "2025-03-13",
-      "status": "Aprobada"
-    }
+    "publish": [
+      {
+        "id": "CHK-DC-2025-007",
+        "date": "2025-03-13",
+        "status": "Aprobada"
+      }
+    ]
   },
   "revision_history": [
     {
