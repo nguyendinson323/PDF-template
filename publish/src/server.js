@@ -14,6 +14,9 @@ import errorHandler from './middleware/errorHandler.js';
 import healthRouter from './routes/health.js';
 import stampRouter from './routes/stamp.js';
 import publishRouter from './routes/publish.js';
+import verifyRouter from './routes/verify.js';
+import checklistsRouter from './routes/checklists.js';
+import auditPackRouter from './routes/auditPack.js';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +44,9 @@ app.use(authMiddleware);
 app.use('/health', healthRouter);
 app.use('/stamp', stampRouter);
 app.use('/publish', publishRouter);
+app.use('/verify', verifyRouter);
+app.use('/publish/documents', checklistsRouter);
+app.use('/publish/documents', auditPackRouter);
 
 // Basic root endpoint
 app.get('/', (req, res) => {
@@ -51,7 +57,10 @@ app.get('/', (req, res) => {
     endpoints: [
       'GET /health',
       'POST /stamp',
-      'POST /publish'
+      'POST /publish',
+      'POST /verify',
+      'POST /publish/documents/:docId/checklists',
+      'POST /publish/documents/:docId/audit-pack'
     ]
   });
 });

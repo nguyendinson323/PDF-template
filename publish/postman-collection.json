@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "Passfy Document Publisher - Milestone 3",
+    "description": "API collection for testing document verification, checklists, and audit pack generation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "TEST",
+      "type": "string"
+    },
+    {
+      "key": "docId",
+      "value": "PAS-L1-GOV-PRC-001",
+      "type": "string"
+    },
+    {
+      "key": "version",
+      "value": "v2.0.0",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Verify Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"docId\": \"{{docId}}\",\n  \"version\": \"{{version}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["verify"]
+        }
+      }
+    },
+    {
+      "name": "Submit Checklists",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"version\": \"{{version}}\",\n  \"entries\": [\n    {\n      \"type\": \"QAC\",\n      \"id\": \"CHK-QA-2025-004\",\n      \"status\": \"Aprobada\",\n      \"date\": \"2025-03-12\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/publish/documents/{{docId}}/checklists",
+          "host": ["{{baseUrl}}"],
+          "path": ["publish", "documents", "{{docId}}", "checklists"]
+        }
+      }
+    },
+    {
+      "name": "Generate Audit Pack",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"version\": \"{{version}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/publish/documents/{{docId}}/audit-pack",
+          "host": ["{{baseUrl}}"],
+          "path": ["publish", "documents", "{{docId}}", "audit-pack"]
+        }
+      }
+    }
+  ]
+}

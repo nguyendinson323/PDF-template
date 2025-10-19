@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: Passfy Document Publisher API
+  description: |
+    Microservice for generating official PDFs with covers, headers/footers, SHA-256 hash,
+    and RFC 3161 timestamps. Milestone 3 adds verification, checklists, and audit pack generation.
+  version: 1.0.0
+  contact:
+    name: Passfy Support
+    email: support@passfy.io
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service health status
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /publish:
+    post:
+      summary: Publish document
+      description: Generates cover page, stamps body PDF with headers/footers, merges them, and saves to storage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - dto
+                - bodyPdf
+              properties:
+                dto:
+                  type: string
+                  description: JSON string containing document metadata
+                bodyPdf:
+                  type: string
+                  format: binary
+                  description: The body PDF file to stamp
+      responses:
+        '200':
+          description: Document published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verify:
+    post:
+      summary: Verify document
+      description: Verifies official document integrity by computing SHA-256 hash and returning TSA information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - docId
+                - version
+              properties:
+                docId:
+                  type: string
+                  description: Document ID (e.g., PAS-L1-GOV-PRC-001)
+                  example: PAS-L1-GOV-PRC-001
+                version:
+                  type: string
+                  description: Document version (e.g., v2.0.0)
+                  example: v2.0.0
+      responses:
+        '200':
+          description: Verification completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /publish/documents/{docId}/checklists:
+    post:
+      summary: Submit checklists
+      description: Accepts and stores checklist entries for a document
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Document ID
+          example: PAS-L1-GOV-PRC-001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+                - entries
+              properties:
+                version:
+                  type: string
+                  description: Document version
+                  example: v2.0.0
+                entries:
+                  type: array
+                  description: Array of checklist entries
+                  items:
+                    $ref: '#/components/schemas/ChecklistEntry'
+      responses:
+        '200':
+          description: Checklists accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChecklistsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /publish/documents/{docId}/audit-pack:
+    post:
+      summary: Generate audit pack
+      description: Concatenates official document and checklist PDFs into an audit pack
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Document ID
+          example: PAS-L1-GOV-PRC-001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+              properties:
+                version:
+                  type: string
+                  description: Document version
+                  example: v2.0.0
+      responses:
+        '200':
+          description: Audit pack generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPackResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+
+  schemas:
+    PublishResponse:
+      type: object
+      properties:
+        docId:
+          type: string
+          example: PAS-L1-GOV-PRC-001
+        version:
+          type: string
+          example: v2.0.0
+        s3Key:
+          type: string
+          example: Desarrollo/stamped/PAS-L1-GOV-PRC-001-v2.0.0-R-Final-001.pdf
+        sha256:
+          type: string
+          example: b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3
+        tsaTime:
+          type: string
+          example: '2025-03-13T09:15:00Z'
+        tsaSerial:
+          type: string
+          example: TSA-2025-001
+
+    VerifyResponse:
+      type: object
+      properties:
+        docId:
+          type: string
+          example: PAS-L1-GOV-PRC-001
+        version:
+          type: string
+          example: v2.0.0
+        sha256:
+          type: string
+          example: b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3
+        tsaTime:
+          type: string
+          example: mock
+        tsaSerial:
+          type: string
+          example: TSA-MOCK-001
+
+    ChecklistEntry:
+      type: object
+      required:
+        - type
+        - id
+        - status
+        - date
+      properties:
+        type:
+          type: string
+          description: Checklist type
+          example: QAC
+        id:
+          type: string
+          description: Checklist ID
+          example: CHK-QA-2025-004
+        status:
+          type: string
+          description: Checklist status
+          example: Aprobada
+        date:
+          type: string
+          format: date
+          description: Checklist date
+          example: '2025-03-12'
+
+    ChecklistsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: accepted
+        docId:
+          type: string
+          example: PAS-L1-GOV-PRC-001
+        version:
+          type: string
+          example: v2.0.0
+        entriesCount:
+          type: integer
+          example: 1
+
+    AuditPackResponse:
+      type: object
+      properties:
+        s3Key:
+          type: string
+          example: Publicados/audit-packs/PAS-L1-GOV-PRC-001-v2.0.0.pdf
+        sizeBytes:
+          type: integer
+          example: 123456
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: BAD_REQUEST
+            message:
+              type: string
+              example: Invalid request parameters
+            details:
+              type: object
+              nullable: true
+            timestamp:
+              type: string
+              format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
