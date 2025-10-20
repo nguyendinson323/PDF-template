@@ -1,0 +1,55 @@
+{
+	"info": {
+		"_postman_id": "a19ff735-8369-424e-bc7e-5c1a2c02f765",
+		"name": "PDF",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45321451"
+	},
+	"item": [
+		{
+			"name": "verify",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "TEST",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "docId",
+							"value": "PAS-L1-GOV-PRC-001",
+							"type": "text"
+						},
+						{
+							"key": "version",
+							"value": "v2.0.0",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8080/verify",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"verify"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
