@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Milestone 3 Test Script
+# Final Test Script
 # Tests /verify, /checklists, and /audit-pack endpoints
 
 BASE_URL="http://localhost:8080"
 API_KEY="TEST"
 
 echo "=========================================="
-echo "  MILESTONE 3 - ENDPOINT TESTS"
+echo "  Final - ENDPOINT TESTS"
 echo "=========================================="
 echo ""
 

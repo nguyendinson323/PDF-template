@@ -3,7 +3,7 @@ info:
   title: Passfy Document Publisher API
   description: |
     Microservice for generating official PDFs with covers, headers/footers, SHA-256 hash,
-    and RFC 3161 timestamps. Milestone 3 adds verification, checklists, and audit pack generation.
+    and RFC 3161 timestamps. Final adds verification, checklists, and audit pack generation.
   version: 1.0.0
   contact:
     name: Passfy Support

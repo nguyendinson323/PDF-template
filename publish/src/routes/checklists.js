@@ -2,7 +2,7 @@
 // Checklists Route
 // ==================================================================================
 // POST /publish/documents/:docId/checklists - Submits checklist entries
-// Stores checklist data (mock implementation for Milestone 3)
+// Stores checklist data (mock implementation for Final)
 // ==================================================================================
 
 import express from 'express';
