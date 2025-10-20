@@ -70,7 +70,7 @@ router.post('/', async (req, res, next) => {
       docId,
       version,
       sha256,
-      tsaTime: config.tsa.useMock ? 'mock-' + new Date().toISOString() : new Date().toISOString(),
+      tsaTime: config.tsa.useMock ? 'mock' : new Date().toISOString(),
       tsaSerial: config.tsa.useMock ? 'TSA-MOCK-001' : `TSA-${Date.now()}`,
     };
 
