@@ -17,6 +17,7 @@ echo "Verifying document..."
 echo ""
 
 curl -s -X POST "${BASE_URL}/verify" -H "x-api-key: ${API_KEY}" -H "Content-Type: application/json" -d '{"docId":"PAS-L1-GOV-PRC-001","version":"v2.0.0"}' | jq
+# curl -s -X POST "http://localhost:8080/verify" -H "x-api-key: $TEST" -H "Content-Type: application/json" -d '{"docId":"PAS-L1-GOV-PRC-001","version":"v2.0.0"}'
 
 echo ""
 echo "=========================================="
